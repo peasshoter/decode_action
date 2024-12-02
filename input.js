@@ -1,581 +1,1587 @@
-//Mon Dec 02 2024 08:43:41 GMT+0000 (Coordinated Universal Time)
-//Base:https://github.com/echo094/decode-js
-//Modify:https://github.com/smallfawn/decode_action
-var syncListArray = new Array();
-var syncListLength = 0;
-var syncedCount = 0;
-var syncedErrorArray = [];
-var stopedSyncFlag = "0";
-var closeSyncWinFlag = "0";
-var pmId = getUrlParam("_pmId") == null ? genID("NORMAL") : getUrlParam("_pmId");
-var patentData = {};
-var syncingPatentNo = "";
-var retryLoginFlag = false;
-var loadingBase64 = "data:image/gif;base64,R0lGODlhIAAgALMAAP///7Ozs/v7+9bW1uHh4fLy8rq6uoGBgTQ0NAEBARsbG8TExJeXl/39/VRUVAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFBQAAACwAAAAAIAAgAAAE5xDISSlLrOrNp0pKNRCdFhxVolJLEJQUoSgOpSYT4RowNSsvyW1icA16k8MMMRkCBjskBTFDAZyuAEkqCfxIQ2hgQRFvAQEEIjNxVDW6XNE4YagRjuBCwe60smQUDnd4Rz1ZAQZnFAGDd0hihh12CEE9kjAEVlycXIg7BAsMB6SlnJ87paqbSKiKoqusnbMdmDC2tXQlkUhziYtyWTxIfy6BE8WJt5YEvpJivxNaGmLHT0VnOgGYf0dZXS7APdpB309RnHOG5gDqXGLDaC457D1zZ/V/nmOM82XiHQjYKhKP1oZmADdEAAAh+QQFBQAAACwAAAAAGAAXAAAEchDISasKNeuJFKoHs4mUYlJIkmjIV54Soypsa0wmLSnqoTEtBw52mG0AjhYpBxioEqRNy8V0qFzNw+GGwlJki4lBqx1IBgjMkRIghwjrzcDti2/Gh7D9qN774wQGAYOEfwCChIV/gYmDho+QkZKTR3p7EQAh+QQFBQAAACwBAAAAHQAOAAAEchDISWdANesNHHJZwE2DUSEo5SjKKB2HOKGYFLD1CB/DnEoIlkti2PlyuKGEATMBaAACSyGbEDYD4zN1YIEmh0SCQQgYehNmTNNaKsQJXmBuuEYPi9ECAU/UFnNzeUp9VBQEBoFOLmFxWHNoQw6RWEocEQAh+QQFBQAAACwHAAAAGQARAAAEaRDICdZZNOvNDsvfBhBDdpwZgohBgE3nQaki0AYEjEqOGmqDlkEnAzBUjhrA0CoBYhLVSkm4SaAAWkahCFAWTU0A4RxzFWJnzXFWJJWb9pTihRu5dvghl+/7NQmBggo/fYKHCX8AiAmEEQAh+QQFBQAAACwOAAAAEgAYAAAEZXCwAaq9ODAMDOUAI17McYDhWA3mCYpb1RooXBktmsbt944BU6zCQCBQiwPB4jAihiCK86irTB20qvWp7Xq/FYV4TNWNz4oqWoEIgL0HX/eQSLi69boCikTkE2VVDAp5d1p0CW4RACH5BAUFAAAALA4AAAASAB4AAASAkBgCqr3YBIMXvkEIMsxXhcFFpiZqBaTXisBClibgAnd+ijYGq2I4HAamwXBgNHJ8BEbzgPNNjz7LwpnFDLvgLGJMdnw/5DRCrHaE3xbKm6FQwOt1xDnpwCvcJgcJMgEIeCYOCQlrF4YmBIoJVV2CCXZvCooHbwGRcAiKcmFUJhEAIfkEBQUAAAAsDwABABEAHwAABHsQyAkGoRivELInnOFlBjeM1BCiFBdcbMUtKQdTN0CUJru5NJQrYMh5VIFTTKJcOj2HqJQRhEqvqGuU+uw6AwgEwxkOO55lxIihoDjKY8pBoThPxmpAYi+hKzoeewkTdHkZghMIdCOIhIuHfBMOjxiNLR4KCW1ODAlxSxEAIfkEBQUAAAAsCAAOABgAEgAABGwQyEkrCDgbYvvMoOF5ILaNaIoGKroch9hacD3MFMHUBzMHiBtgwJMBFolDB4GoGGBCACKRcAAUWAmzOWJQExysQsJgWj0KqvKalTiYPhp1LBFTtp10Is6mT5gdVFx1bRN8FTsVCAqDOB9+KhEAIfkEBQUAAAAsAgASAB0ADgAABHgQyEmrBePS4bQdQZBdR5IcHmWEgUFQgWKaKbWwwSIhc4LonsXhBSCsQoOSScGQDJiWwOHQnAxWBIYJNXEoFCiEWDI9jCzESey7GwMM5doEwW4jJoypQQ743u1WcTV0CgFzbhJ5XClfHYd/EwZnHoYVDgiOfHKQNREAIfkEBQUAAAAsAAAPABkAEQAABGeQqUQruDjrW3vaYCZ5X2ie6EkcKaooTAsi7ytnTq046BBsNcTvItz4AotMwKZBIC6H6CVAJaCcT0CUBTgaTg5nTCu9GKiDEMPJg5YBBOpwlnVzLwtqyKnZagZWahoMB2M3GgsHSRsRACH5BAUFAAAALAEACAARABgAAARcMKR0gL34npkUyyCAcAmyhBijkGi2UW02VHFt33iu7yiDIDaD4/erEYGDlu/nuBAOJ9Dvc2EcDgFAYIuaXS3bbOh6MIC5IAP5Eh5fk2exC4tpgwZyiyFgvhEMBBEAIfkEBQUAAAAsAAACAA4AHQAABHMQyAnYoViSlFDGXBJ808Ep5KRwV8qEg+pRCOeoioKMwJK0Ekcu54h9AoghKgXIMZgAApQZcCCu2Ax2O6NUud2pmJcyHA4L0uDM/ljYDCnGfGakJQE5YH0wUBYBAUYfBIFkHwaBgxkDgX5lgXpHAXcpBIsRADs=";
-Date.prototype.format = function (_0x3113f6) {
-  var _0x6c39a7 = {
-    "M+": this.getMonth() + 1,
-    "d+": this.getDate(),
-    "h+": this.getHours(),
-    "m+": this.getMinutes(),
-    "s+": this.getSeconds(),
-    "q+": Math.floor((this.getMonth() + 3) / 3),
-    S: this.getMilliseconds()
+var _0x58a2d6 = _0x1bef;
+(function (_0x4f3c9a, _0x2c750d) {
+  var _0x38ad72 = _0x1bef,
+    _0x48379f = _0x4f3c9a();
+  while (!![]) {
+    try {
+      var _0x299c67 =
+        (-parseInt(_0x38ad72(0x2dd)) /
+          (-0x10e2 * 0x2 + 0x1381 * -0x1 + 0x3 * 0x11c2)) *
+          (-parseInt(_0x38ad72(0x2eb)) /
+            (0x133 * -0x1e + 0x10bc + 0x4d * 0x40)) +
+        -parseInt(_0x38ad72(0x254)) / (0x8c9 + 0x195e + -0x2224) +
+        (parseInt(_0x38ad72(0x205)) / (0x1 * 0xbe2 + 0x9ff + -0xc1 * 0x1d)) *
+          (-parseInt(_0x38ad72(0x208)) / (-0xa17 + -0x49c + 0xeb8)) +
+        (parseInt(_0x38ad72(0x1eb)) /
+          (0x20 * -0x118 + -0x1708 + 0x1 * 0x3a0e)) *
+          (-parseInt(_0x38ad72(0x310)) / (0x3f6 + -0x22b3 + 0x1ec4)) +
+        -parseInt(_0x38ad72(0x1e5)) / (0x29 * -0x3d + -0x1f8d + 0x295a) +
+        (parseInt(_0x38ad72(0x1ab)) / (-0x1bb * -0x5 + -0x19eb + 0x114d)) *
+          (parseInt(_0x38ad72(0x1c7)) / (0xc22 + -0x175e + 0x25 * 0x4e)) +
+        (-parseInt(_0x38ad72(0x216)) / (-0x1078 + -0x2482 + 0x3505)) *
+          (-parseInt(_0x38ad72(0x1ed)) /
+            (-0xe * 0xda + -0x1 * 0x112f + 0x11 * 0x1b7));
+      if (_0x299c67 === _0x2c750d) break;
+      else _0x48379f["push"](_0x48379f["shift"]());
+    } catch (_0x1af079) {
+      _0x48379f["push"](_0x48379f["shift"]());
+    }
+  }
+})(_0x64d2, 0x6618b + 0x79f * 0x11b + 0xf436 * -0x9);
+var __syncGroupPatentInfo,
+  __viewPatentDetail,
+  __viewPatentLsnt,
+  __viewPatentFee,
+  __getFingerPrint,
+  _patentAssistNewPluginFlag = !![];
+function _0x64d2() {
+  var _0x178699 = [
+    "&_queryDat",
+    "RpxCE",
+    ".q-panel-p",
+    "buyrv",
+    "div:nth-ch",
+    "responseUR",
+    "GnAsR",
+    "responseTe",
+    "_queryData",
+    "QklAn",
+    "match",
+    "href",
+    "jvfkK",
+    "WEB2C",
+    "1|2|7|5|9|",
+    "bleList\x20>\x20",
+    "JPwmo",
+    "XgBxr",
+    "substr",
+    "JGBui",
+    "nth-child(",
+    "DVvnY",
+    "jPOLi",
+    "rd.q-btn--",
+    ".content\x20>",
+    "arent\x20>\x20di",
+    "dwmYt",
+    "oxRow\x20>\x20di",
+    "stringify",
+    "RaDBp",
+    "vMJlF",
+    "r\x20>\x20main\x20>",
+    "eUhVr",
+    "h/undomest",
+    "uest",
+    "=([^&]*)(&",
+    "duKPn",
+    "yxOrV",
+    "ajaxReadyS",
+    "mwxrZ",
+    "oGsWZ",
+    "ftyXC",
+    "TgGFU",
+    "shenqingrx",
+    "://cpquery",
+    "current\x20>\x20",
+    "avKbu",
+    "t-center.q",
+    "ajaxLoad",
+    "fPmAO",
+    "view_paten",
+    ">\x20div:nth-",
+    "change",
+    "warn",
+    "ajaxLoadSt",
+    "click",
+    "HvhDA",
+    "KiEai",
+    "XujsU",
+    "loadstart",
+    "syncType",
+    "card--bord",
+    "4|1|3|0|2",
+    "ehpeH",
+    "uKGMJ",
+    "postMessag",
+    "ectable.no",
+    "v.tree\x20>\x20d",
+    "h-area\x20>\x20d",
+    "div.table_",
+    "-shadow\x20>\x20",
+    "AlFlu",
+    "FYYvX",
+    "MfZeX",
+    "tcVoF",
+    "tn--standa",
+    "mYLMH",
+    "JyphX",
+    "n.q-btn-it",
+    "patent/ind",
+    "ZPrWG",
+    "undefined",
+    "#q-app\x20>\x20d",
+    "stener",
+    "8|6|4|0|3",
+    "top1.col-1",
+    "\x20div\x20>\x20lab",
+    ".col-10.q-",
+    "ZwRmM",
+    "lRSkt",
+    "解析传递过来的状态信",
+    "QrvVm",
+    "cnipa.gov.",
+    "btoa",
+    "feeInfo",
+    "em.non-sel",
+    "2|9|3|6|10",
+    "v\x20>\x20div.ta",
+    "yes",
+    "split",
+    "EwNox",
+    "get_finger",
+    "\x20div\x20>\x20div",
+    "search",
+    "utton.q-bt",
+    "n/sqxx",
+    "ajaxError",
+    "jgGGQ",
+    "progress",
+    "\x20div.searc",
+    "DTGKo",
+    "kmEQw",
+    "PBBnd",
+    "cn/chinese",
+    "atob",
+    "\x20div.q-pag",
+    "abort",
+    "mNImj",
+    "-my-md\x20>\x20b",
+    "dispatchEv",
+    "FrKls",
+    "1\x20>\x20div\x20>\x20",
+    "earch",
+    "LZIxo",
+    "_pmId",
+    "location",
+    "HpBGW",
+    "UjVXM",
+    "|$)",
+    "value",
+    "KKYJm",
+    "HNHiS",
+    "ZgpFl",
+    "yhEab",
+    "15TFAood",
+    "xeMFO",
+    "ered.q-car",
+    "WEB",
+    "toString",
+    "ajaxTimeou",
+    "KXXdM",
+    "q-focusabl",
+    "successDat",
+    "4|0|10|5|7",
+    "random",
+    "NFqJE",
+    "h-child(1)",
+    "\x20div.row.b",
+    "12410HlwYvE",
+    "a_parse_fe",
+    "qwaig",
+    "l.row.q-an",
+    ".text-whit",
+    "msgId",
+    "KHqFf",
+    "dailijg",
+    "WQCPX",
+    "sQexi",
+    "McHrT",
+    "QosYR",
+    "OJqUE",
+    "jqkAR",
+    "TkpwA",
+    "CtJLz",
+    "/api/view/",
+    "AwNSm",
+    "IhmfB",
+    "v.table\x20>\x20",
+    "AgPvv",
+    ".el-tree--",
+    ".q-card.q-",
+    "chEGF",
+    "cn/detail/",
+    "-child(2)\x20",
+    "ild(1)\x20>\x20d",
+    "DLfXf",
+    "RkcSX",
+    "IGepM",
+    "owRzQ",
+    "readystate",
+    "FSyqs",
+    "div\x20>\x20form",
+    "VXeGe",
+    "now",
+    "OopGE",
+    "7sQOcfA",
+    "KwZRj",
+    "initEvent",
+    "niRTj",
+    "famingren",
+    "atmGc",
+    "loadend",
+    "lxuwE",
+    "_print",
+    "qKCIS",
+    "JLfmq",
+    "cbType",
+    "540urDpII",
+    "\x20>\x20div:nth",
+    "th-child(2",
+    "tab-panels",
+    "XMLHttpReq",
+    "highlight-",
+    "\x20>\x20input",
+    "v\x20>\x20div\x20>\x20",
+    "HTMLEvents",
+    "SCYOn",
+    "rFFHL",
+    "uvWSZ",
+    "el\x20>\x20div\x20>",
+    "iPtyV",
+    "OtcPH",
+    "|8|1|0|4|5",
+    "rectangle.",
+    "ic/publicS",
+    ">\x20div\x20>\x20di",
+    "DHiTe",
+    "ld(2)\x20>\x20di",
+    "indexOf",
+    "message",
+    "queryFeeFl",
+    "ctionable.",
+    "qFiEz",
+    "types",
+    ".hover_act",
+    "73090ExJoLf",
+    "obEMl",
+    "child(1)\x20>",
+    "tNo",
+    "&_patentNo",
+    "Lzpze",
+    "_patentNo",
+    "msg",
+    "gZktU",
+    "HhVFp",
+    "ild(2)\x20>\x20d",
+    "ajaxProgre",
+    "aiPoj",
+    "gzcGH",
+    ")\x20>\x20div:nt",
+    "t_fee",
+    "TLgoy",
+    "t_lsnt",
+    "MGJSJ",
+    "ycafY",
+    "chor--skip",
+    "Hbucz",
+    "data",
+    "gicOP",
+    "an.q-btn__",
+    "v.col-4.co",
+    "open",
+    "fenantjr",
+    "art",
+    "mkZuc",
+    "618464TyFogc",
+    "-wrap\x20>\x20sp",
+    "GSEkJ",
+    "ent",
+    "addEventLi",
+    "息出现异常了",
+    "127854vVHtXU",
+    "gn/fyxx",
+    "90492jsYTyi",
+    "syncErrorL",
+    "iv:nth-chi",
+    "|2|3|6|1|8",
+    "WqZOU",
+    "mIQph",
+    "PObSR",
+    "shenqingre",
+    "no-padding",
+    "patent_dat",
+    "parent",
+    "PPNHw",
+    "ajaxAbort",
+    "&_pmId=",
+    "parse",
+    "tor",
+    "decodeURIC",
+    "api/view/g",
+    "SzLQw",
+    "wrapper.co",
+    "TUYEO",
+    "error",
+    "iv.el-tree",
+    "Xveba",
+    "1284516EOKqpQ",
+    "/api/searc",
+    "vnPuN",
+    "5GoOVTv",
+    "index",
+    "WPCcw",
+    "ZbrzU",
+    "omponent",
+    "vDVUK",
+    "e-containe",
+    "tateChange",
+    "FNDap",
+    "oOaMv",
+    "LCZyR",
+    "VTbMi",
+    "QTTfk",
+    "span.title",
+    "1001KGFdEC",
+    "XpkhB",
+    "_print_cb",
+    "2)\x20>\x20div:n",
+    "MLCUH",
+    "load",
+    "ild(3)\x20>\x20d",
+    "e.q-hovera",
+    "input",
+    "FEE",
+    "CPjNr",
+    "hkIsG",
+    "nIYld",
+    "zhuluxmxx",
+    "call",
+    "d--flat.no",
+    "records",
+    "ist",
+    "v.row\x20>\x20di",
+    "iv\x20>\x20div\x20>",
+    "kfRba",
+    "byyLq",
+    "belsA",
+    "div.table\x20",
+    "XcYmO",
+    "div\x20>\x20div.",
+    "DpqqA",
+    "ive",
+    ".cponline.",
+    "timeout",
+    "a_parse_sq",
+    "clickPaten",
+    "msgtype",
+    "sync_paten",
+    "querySelec",
+    "tqdPf",
+    "\x20>\x20div.tex",
+    "_sqFastMod",
+    "DKGtI",
+    "patentInfo",
+    "-mx-xs.q-b",
+    "createEven",
+    "types=",
+    "ajaxLoadEn",
+    "DPlUu",
+    "ZNaee",
+    "KBICj",
+    "bg-primary",
+    "ble.q-btn-",
+    "t_cb",
+    "-child(1)\x20",
+    "(^|&)",
+    "t_detail",
+    "YZkaW",
+    "detail",
+    "-outline.q",
+    "div.row\x20>\x20",
+    "div\x20>\x20div:",
+    "EZplH",
+    "iIYrC",
+    "UgEMK",
+    "e.q-btn--a",
+    "1171326mvUbud",
+    "KhsJV",
+    "EedGj",
+  ];
+  _0x64d2 = function () {
+    return _0x178699;
   };
-  if (/(y+)/.test(_0x3113f6)) {
-    _0x3113f6 = _0x3113f6.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
-  }
-  for (var _0xbe9cf6 in _0x6c39a7) {
-    var _0x4b5960 = _0x6c39a7[_0xbe9cf6];
-    if (new RegExp("(" + _0xbe9cf6 + ")").test(_0x3113f6)) {
-      _0x3113f6 = _0x3113f6.replace(RegExp.$1, RegExp.$1.length == 1 ? _0x4b5960 : ("00" + _0x4b5960).substr(("" + _0x4b5960).length));
-    }
-  }
-  return _0x3113f6;
-};
-window.addEventListener("message", function (_0x5cc89c) {
-  try {
-    var _0x32fbee = _0x5cc89c.data;
-    var _0x4ae0f5 = _0x5cc89c.origin;
-    var _0x2f1c89 = _0x32fbee.to;
-    var _0x45f43c = _0x32fbee.msgtype;
-    var _0x1c83a7 = _0x32fbee.msg;
-    var _0x1ae49e = _0x32fbee.msgId;
-    var _0x138911 = {
-      msgId: _0x1ae49e,
-      from: "SC",
-      to: "WEB"
+  return _0x64d2();
+}
+(function () {
+  var _0x529a72 = _0x1bef,
+    _0x262330 = {
+      oOaMv: function (_0x3faecd, _0x1892cc) {
+        return _0x3faecd(_0x1892cc);
+      },
+      jqkAR: function (_0x2176f3, _0x5dc234) {
+        return _0x2176f3 + _0x5dc234;
+      },
+      DPlUu: function (_0x207830, _0x7c0ea4) {
+        return _0x207830 + _0x7c0ea4;
+      },
+      niRTj: function (_0x3a1ac2, _0x3e6702) {
+        return _0x3a1ac2 + _0x3e6702;
+      },
+      KHqFf: function (_0x2eaff6, _0x305fc3) {
+        return _0x2eaff6 + _0x305fc3;
+      },
+      ftyXC: function (_0x27203f, _0x1a0f35) {
+        return _0x27203f + _0x1a0f35;
+      },
+      gZktU: function (_0x1ebcc6, _0x42963b) {
+        return _0x1ebcc6 + _0x42963b;
+      },
+      lxuwE: function (_0x313b70, _0x250d98) {
+        return _0x313b70 + _0x250d98;
+      },
+      OJqUE: function (_0x3f9b73, _0x1576f2) {
+        return _0x3f9b73 > _0x1576f2;
+      },
+      TUYEO: _0x529a72(0x240),
+      qKCIS: _0x529a72(0x1fa),
+      QrvVm: _0x529a72(0x1cb) + "=",
+      gicOP: _0x529a72(0x257) + "a=",
+      LCZyR: function (_0x365f9a, _0x19a6ac) {
+        return _0x365f9a != _0x19a6ac;
+      },
+      OtcPH: function (_0x2c6bdd, _0x1ba307, _0x35270a, _0x11ffa2) {
+        return _0x2c6bdd(_0x1ba307, _0x35270a, _0x11ffa2);
+      },
+      WqZOU:
+        _0x529a72(0x2a9) +
+        _0x529a72(0x229) +
+        _0x529a72(0x2ca) +
+        _0x529a72(0x20e) +
+        _0x529a72(0x276) +
+        _0x529a72(0x2c4) +
+        _0x529a72(0x29b) +
+        _0x529a72(0x1ef) +
+        _0x529a72(0x1bf) +
+        _0x529a72(0x2b8) +
+        _0x529a72(0x266) +
+        _0x529a72(0x22d) +
+        _0x529a72(0x1bd) +
+        _0x529a72(0x228) +
+        _0x529a72(0x1b2) +
+        _0x529a72(0x24e) +
+        _0x529a72(0x29c) +
+        _0x529a72(0x2ac) +
+        _0x529a72(0x2d0) +
+        _0x529a72(0x215) +
+        _0x529a72(0x1c6) +
+        _0x529a72(0x231),
+      eUhVr: function (_0xc235b4, _0x5135f8) {
+        return _0xc235b4 > _0x5135f8;
+      },
+      OopGE: _0x529a72(0x1fe) + _0x529a72(0x2c0),
+      DLfXf: function (_0x4dd4f0, _0x255c76) {
+        return _0x4dd4f0 <= _0x255c76;
+      },
+      KKYJm: _0x529a72(0x21f),
+      avKbu: function (_0x3b1274, _0x4b48b3) {
+        return _0x3b1274 > _0x4b48b3;
+      },
+      EwNox: _0x529a72(0x2fb) + _0x529a72(0x1ec),
+      KXXdM: function (_0x5a83db, _0x4fe1cf) {
+        return _0x5a83db != _0x4fe1cf;
+      },
+      YZkaW:
+        _0x529a72(0x206) +
+        _0x529a72(0x278) +
+        _0x529a72(0x1bc) +
+        _0x529a72(0x2d1),
+      HNHiS: function (_0x2558c9, _0x4e9542) {
+        return _0x2558c9 == _0x4e9542;
+      },
+      NFqJE: _0x529a72(0x2b9),
+      UjVXM: function (_0x5992b4, _0xbc93e2, _0x42c759) {
+        return _0x5992b4(_0xbc93e2, _0x42c759);
+      },
+      LZIxo: function (_0x27afe9, _0x5a7702) {
+        return _0x27afe9 != _0x5a7702;
+      },
+      MLCUH: function (_0xf55686, _0x4b8a35) {
+        return _0xf55686 != _0x4b8a35;
+      },
+      gzcGH: _0x529a72(0x1f6) + _0x529a72(0x234),
+      TkpwA: function (_0x9b1f36, _0x276fac) {
+        return _0x9b1f36(_0x276fac);
+      },
+      KwZRj: function (_0x37ba95, _0x541981) {
+        return _0x37ba95 > _0x541981;
+      },
+      dwmYt: function (_0x20878c, _0x2463a9) {
+        return _0x20878c != _0x2463a9;
+      },
+      MfZeX: function (_0x25c402, _0x14ae21) {
+        return _0x25c402 != _0x14ae21;
+      },
+      mYLMH: function (_0x5aaf78, _0x418b80) {
+        return _0x5aaf78 != _0x418b80;
+      },
+      IhmfB: function (_0x59c19e, _0x3f713a) {
+        return _0x59c19e > _0x3f713a;
+      },
+      ZPrWG: _0x529a72(0x1f6) + _0x529a72(0x2ec) + "e",
+      iIYrC:
+        _0x529a72(0x2a9) +
+        _0x529a72(0x229) +
+        _0x529a72(0x2ca) +
+        _0x529a72(0x20e) +
+        _0x529a72(0x276) +
+        _0x529a72(0x2bd) +
+        _0x529a72(0x301) +
+        _0x529a72(0x294) +
+        _0x529a72(0x2df) +
+        _0x529a72(0x225) +
+        _0x529a72(0x29d) +
+        _0x529a72(0x22f) +
+        _0x529a72(0x1f5) +
+        _0x529a72(0x2ae) +
+        _0x529a72(0x1ae) +
+        _0x529a72(0x259) +
+        _0x529a72(0x270) +
+        _0x529a72(0x1b2) +
+        _0x529a72(0x30c) +
+        _0x529a72(0x1ac) +
+        _0x529a72(0x304) +
+        _0x529a72(0x28a) +
+        _0x529a72(0x1c9) +
+        _0x529a72(0x2ad) +
+        _0x529a72(0x1b7) +
+        _0x529a72(0x2bd) +
+        _0x529a72(0x1b1),
+      ZwRmM: function (_0x472cbf, _0x235847) {
+        return _0x472cbf != _0x235847;
+      },
+      buyrv: _0x529a72(0x1b3),
+      iPtyV: _0x529a72(0x21e),
+      MGJSJ:
+        _0x529a72(0x2a9) +
+        _0x529a72(0x229) +
+        _0x529a72(0x2ca) +
+        _0x529a72(0x20e) +
+        _0x529a72(0x276) +
+        _0x529a72(0x2bd) +
+        _0x529a72(0x301) +
+        _0x529a72(0x294) +
+        _0x529a72(0x2df) +
+        _0x529a72(0x225) +
+        _0x529a72(0x29d) +
+        _0x529a72(0x22f) +
+        _0x529a72(0x1f5) +
+        _0x529a72(0x2ae) +
+        _0x529a72(0x1ae) +
+        _0x529a72(0x259) +
+        _0x529a72(0x270) +
+        _0x529a72(0x1b2) +
+        _0x529a72(0x30c) +
+        _0x529a72(0x23a) +
+        _0x529a72(0x286) +
+        _0x529a72(0x2cd) +
+        _0x529a72(0x2bf) +
+        _0x529a72(0x2a5) +
+        _0x529a72(0x2b6) +
+        _0x529a72(0x299) +
+        _0x529a72(0x24d) +
+        _0x529a72(0x23e) +
+        _0x529a72(0x2a2) +
+        _0x529a72(0x26e) +
+        _0x529a72(0x1bb) +
+        _0x529a72(0x245) +
+        _0x529a72(0x2ef) +
+        _0x529a72(0x253) +
+        _0x529a72(0x1c3) +
+        _0x529a72(0x2e4) +
+        _0x529a72(0x21d) +
+        _0x529a72(0x246) +
+        _0x529a72(0x1e6) +
+        _0x529a72(0x1df) +
+        _0x529a72(0x200) +
+        _0x529a72(0x2ee) +
+        _0x529a72(0x1db),
+      CPjNr: function (_0x245e32, _0x10f223) {
+        return _0x245e32 != _0x10f223;
+      },
+      kfRba:
+        _0x529a72(0x2a9) +
+        _0x529a72(0x229) +
+        _0x529a72(0x2ca) +
+        _0x529a72(0x20e) +
+        _0x529a72(0x276) +
+        _0x529a72(0x2bd) +
+        _0x529a72(0x26f) +
+        _0x529a72(0x2ea) +
+        _0x529a72(0x272) +
+        _0x529a72(0x29a) +
+        _0x529a72(0x203) +
+        _0x529a72(0x300) +
+        _0x529a72(0x1b0) +
+        _0x529a72(0x284) +
+        _0x529a72(0x25b) +
+        _0x529a72(0x305) +
+        "iv",
+      mIQph:
+        _0x529a72(0x2a9) +
+        _0x529a72(0x229) +
+        _0x529a72(0x2ca) +
+        _0x529a72(0x20e) +
+        _0x529a72(0x276) +
+        _0x529a72(0x2bd) +
+        _0x529a72(0x26f) +
+        _0x529a72(0x2ea) +
+        _0x529a72(0x272) +
+        _0x529a72(0x2fe) +
+        _0x529a72(0x24f) +
+        _0x529a72(0x26b) +
+        _0x529a72(0x219) +
+        _0x529a72(0x1ad) +
+        _0x529a72(0x1d5) +
+        _0x529a72(0x2e9) +
+        _0x529a72(0x1ac) +
+        _0x529a72(0x248) +
+        _0x529a72(0x1bd) +
+        _0x529a72(0x1e0) +
+        "l1",
+      WQCPX: function (_0x3694d0, _0x37f9f5) {
+        return _0x3694d0 != _0x37f9f5;
+      },
+      obEMl: _0x529a72(0x2b1) + _0x529a72(0x1ea),
+      vnPuN: function (_0x1886ba, _0x3f105a) {
+        return _0x1886ba == _0x3f105a;
+      },
+      GnAsR:
+        _0x529a72(0x2a9) +
+        _0x529a72(0x229) +
+        _0x529a72(0x2ca) +
+        _0x529a72(0x20e) +
+        _0x529a72(0x276) +
+        _0x529a72(0x2bd) +
+        _0x529a72(0x26f) +
+        _0x529a72(0x2ea) +
+        _0x529a72(0x272) +
+        _0x529a72(0x29a) +
+        _0x529a72(0x203) +
+        _0x529a72(0x300) +
+        _0x529a72(0x1b0) +
+        _0x529a72(0x284) +
+        _0x529a72(0x25b) +
+        _0x529a72(0x21c) +
+        "iv",
+      PBBnd: function (_0x4adf96, _0x477df2) {
+        return _0x4adf96 == _0x477df2;
+      },
+      QklAn:
+        _0x529a72(0x2a9) +
+        _0x529a72(0x229) +
+        _0x529a72(0x2ca) +
+        _0x529a72(0x20e) +
+        _0x529a72(0x276) +
+        _0x529a72(0x2bd) +
+        _0x529a72(0x26f) +
+        _0x529a72(0x2ea) +
+        _0x529a72(0x272) +
+        _0x529a72(0x29a) +
+        _0x529a72(0x203) +
+        _0x529a72(0x300) +
+        _0x529a72(0x1b0) +
+        _0x529a72(0x284) +
+        _0x529a72(0x25b) +
+        _0x529a72(0x1d1) +
+        "iv",
+      HhVFp: _0x529a72(0x1f9),
+      QTTfk: _0x529a72(0x287),
+      KhsJV: _0x529a72(0x28d) + _0x529a72(0x1e3),
+      XpkhB: _0x529a72(0x1d2) + "ss",
+      vMJlF: _0x529a72(0x2e2) + "t",
+      CtJLz: _0x529a72(0x241) + "d",
+      fPmAO: _0x529a72(0x2e6) + _0x529a72(0x1f0) + "|9",
+      KBICj: _0x529a72(0x316),
+      atmGc: _0x529a72(0x292),
+      SzLQw: _0x529a72(0x2c3),
+      PObSR: _0x529a72(0x2c1),
+      lRSkt: _0x529a72(0x27d) + _0x529a72(0x20f),
+      DHiTe: _0x529a72(0x202),
+      mkZuc: _0x529a72(0x233),
+      ycafY: _0x529a72(0x21b),
+      owRzQ: _0x529a72(0x30a) + _0x529a72(0x28b),
+      HpBGW: _0x529a72(0x2cb),
+      nIYld:
+        _0x529a72(0x283) +
+        _0x529a72(0x232) +
+        _0x529a72(0x2b3) +
+        _0x529a72(0x303) +
+        _0x529a72(0x209),
+      rFFHL:
+        _0x529a72(0x283) +
+        _0x529a72(0x232) +
+        _0x529a72(0x2b3) +
+        _0x529a72(0x2c8) +
+        _0x529a72(0x2a6) +
+        "ex",
+      hkIsG: function (_0x404845, _0xf3f6d4) {
+        return _0x404845(_0xf3f6d4);
+      },
+      AwNSm: _0x529a72(0x1c5),
+      uKGMJ: _0x529a72(0x2d3),
+      McHrT: function (_0x442a40, _0x186d32) {
+        return _0x442a40(_0x186d32);
+      },
+      jvfkK: _0x529a72(0x1cd),
+      FYYvX: _0x529a72(0x1c2) + "ag",
+      aiPoj: function (_0x3a054d, _0x5eb150) {
+        return _0x3a054d(_0x5eb150);
+      },
+      byyLq: _0x529a72(0x23b) + "e",
+      jPOLi: function (_0x47102d, _0x577f2b) {
+        return _0x47102d(_0x577f2b);
+      },
+      jgGGQ: _0x529a72(0x25f),
+      vDVUK: _0x529a72(0x2e0),
+      belsA: _0x529a72(0x1f6) + "a",
+      XcYmO: function (_0x55e43f, _0x3a888d) {
+        return _0x55e43f > _0x3a888d;
+      },
+      ZNaee: function (_0x281d00, _0x14f9b0) {
+        return _0x281d00 != _0x14f9b0;
+      },
+      WPCcw: function (_0x308f45, _0x4a3d2b, _0x12fb9d) {
+        return _0x308f45(_0x4a3d2b, _0x12fb9d);
+      },
+      TgGFU: function (_0x1d6c3e, _0x128af6, _0x170f7d) {
+        return _0x1d6c3e(_0x128af6, _0x170f7d);
+      },
+      FrKls: function (_0x5e0232, _0x4885cc) {
+        return _0x5e0232 * _0x4885cc;
+      },
+      VTbMi: function (_0xba17a5, _0x23497d) {
+        return _0xba17a5 != _0x23497d;
+      },
+      JPwmo: function (_0x1447ca, _0x765c68) {
+        return _0x1447ca > _0x765c68;
+      },
+      RaDBp: function (_0x5d69a, _0x5dd38d) {
+        return _0x5d69a == _0x5dd38d;
+      },
     };
-    if (_0x2f1c89 == "SC" && _0x45f43c == "sync_patent") {
-      var _0x51c947 = _0x1c83a7.patentsniffList;
-      var _0x56b301 = _0x1c83a7.types;
-      _syncGroupPatentInfo(_0x51c947, _0x56b301, function (_0x4ab6ab, _0x15971b, _0x210dbc) {
-        _0x138911.msgtype = "sync_patent_cb";
-        _0x138911.msg = {
-          cbType: "1",
-          syncType: _0x4ab6ab,
-          successData: _0x210dbc,
-          clickPatentNo: _0x15971b
-        };
-        _0x5cc89c.source.postMessage(_0x138911, _0x4ae0f5);
-      }, function (_0x55df29) {
-        _0x138911.msgtype = "sync_patent_cb";
-        _0x138911.msg = {
-          cbType: "2",
-          syncErrorList: _0x55df29
-        };
-        _0x5cc89c.source.postMessage(_0x138911, _0x4ae0f5);
-      });
-    } else {
-      if (_0x2f1c89 == "SC" && _0x45f43c == "get_finger_print") {
-        _0x138911.msgtype = "get_finger_print_cb";
-        _0x138911.msg = "";
-        chrome.storage.local.get("patent_assist_session_id", function (_0x411e61) {
-          _0x411e61.patent_assist_session_id != undefined && _0x411e61.patent_assist_session_id != "" && (_0x138911.msg = _0x411e61.patent_assist_session_id);
-          _0x5cc89c.source.postMessage(_0x138911, _0x4ae0f5);
-        });
-      } else {
-        if (_0x2f1c89 == "SC" && _0x45f43c == "view_patent_detail") {
-          var _0x2c5d5f = _0x1c83a7.patentNo;
-          _viewPatentDetail(_0x2c5d5f);
-        } else {
-          if (_0x2f1c89 == "SC" && _0x45f43c == "view_patent_lsnt") {
-            var _0x2c5d5f = _0x1c83a7.patentNo;
-            _viewLsnt(_0x2c5d5f);
-          } else {
-            if (_0x2f1c89 == "SC" && _0x45f43c == "view_patent_fee") {
-              var _0x2c5d5f = _0x1c83a7.patentNo;
-              _viewFee(_0x2c5d5f);
-            } else {
-              if (_0x2f1c89 == "SC" && _0x45f43c == "patent_data") {
-                patentData = _0x1c83a7;
-              } else {
-                if (_0x2f1c89 == "SC" && _0x45f43c == "patent_data_parse_sq") {
-                  pmId == _0x1ae49e && openAjx("C", server_path + "/api/cp/getPatentInfoByCurDay", {
-                    patentNo: formatPatentNo(_0x1c83a7.patentNo)
-                  }, 60000, "POST", true, function (_0x216e72) {
-                    var _0x547454 = _0x216e72.currdata;
-                    _0x547454 != "yes" && parseData(_0x1c83a7.patentNo, _0x1c83a7.patentInfo, function (_0x20d4e2) {
-                      _0x20d4e2.flag == false && writeTip(notEmpty(_0x20d4e2.msg) ? _0x20d4e2.msg : "未知的异常信息，无法查看，请刷新页面重试下");
-                    }, "SQ");
-                  });
-                } else {
-                  _0x2f1c89 == "SC" && _0x45f43c == "patent_data_parse_fee" && pmId == _0x1ae49e && openAjx("C", server_path + "/api/cp/getPatentFeeByCurDay", {
-                    patentNo: formatPatentNo(_0x1c83a7.patentNo)
-                  }, 60000, "POST", true, function (_0x31c737) {
-                    var _0x85824b = _0x31c737.currdata;
-                    _0x85824b != "yes" && parseData(_0x1c83a7.patentNo, _0x1c83a7.feeInfo, function (_0x31bee8) {
-                      _0x31bee8.flag == false && writeTip(notEmpty(_0x31bee8.msg) ? _0x31bee8.msg : "未知的异常信息，无法查看，请刷新页面重试下");
-                    }, "FEE");
-                  });
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  } catch (_0x49606f) {
-    console.log("sync_core 接收postMessage消息的方法出现异常了");
-    console.error(_0x49606f);
-    _0x2f1c89 == "SC" && _0x45f43c == "get_finger_print" && (_0x138911.msgtype = "get_finger_print_cb", _0x138911.msg = "", _0x5cc89c.source.postMessage(_0x138911, _0x4ae0f5));
-  }
-}, false);
-function _viewPatentDetail(_0xc4c74f) {
-  try {
-    layer.load();
-    openAjx("C", "http://search.cnipr.com/login!checkLogin.action?randomNum=" + Date.now(), {}, 60000, "GET", true, function (_0x339d89) {
-      layer.closeAll("loading");
-      if (!_0x339d89.success) {
-        var _0x4c4e95 = "检测到您还未登录到【知识产权出版社系统】，请您登录后，再进行查看";
-        loginAlert(_0x4c4e95, "http://search.cnipr.com?__autoLogin=yes");
+  if (
+    _0x262330[_0x529a72(0x311)](
+      window[_0x529a72(0x2d4)][_0x529a72(0x262)][_0x529a72(0x1c0)](
+        _0x262330[_0x529a72(0x222)]
+      ),
+      -(0xcf8 + -0x3a9 * -0x7 + -0x2696)
+    ) ||
+    _0x262330[_0x529a72(0x277)](
+      window[_0x529a72(0x2d4)][_0x529a72(0x262)][_0x529a72(0x1c0)](
+        _0x262330[_0x529a72(0x1b5)]
+      ),
+      -(-0x1b * 0x71 + 0x170 + 0x7a * 0x16)
+    )
+  ) {
+    var _0x24846d = window[_0x529a72(0x1af) + _0x529a72(0x279)];
+    window[_0x529a72(0x1af) + _0x529a72(0x279)] = _0x4c1639;
+    let _0x24e961 = _0x262330[_0x529a72(0x221)](
+        getQueryString,
+        _0x262330[_0x529a72(0x2fc)]
+      ),
+      _0x544da4 = _0x262330[_0x529a72(0x2f9)](
+        getQueryString,
+        _0x262330[_0x529a72(0x297)]
+      ),
+      _0x295a79 = _0x262330[_0x529a72(0x2f5)](
+        getQueryString,
+        _0x262330[_0x529a72(0x263)]
+      ),
+      _0x46bf1d = _0x262330[_0x529a72(0x211)](
+        getQueryString,
+        _0x262330[_0x529a72(0x29f)]
+      ),
+      _0x5a1690 = _0x262330[_0x529a72(0x1d3)](
+        getQueryString,
+        _0x262330[_0x529a72(0x22b)]
+      ),
+      _0x190e8c = _0x262330[_0x529a72(0x26d)](
+        getQueryString,
+        _0x262330[_0x529a72(0x2c2)]
+      ),
+      _0x3ad11c = ![],
+      _0x1db9c9 = window[_0x529a72(0x1e1)];
+    window[_0x529a72(0x1e1)] = function (_0x13104d, _0x4a5451, _0xac1682) {
+      var _0x48d0ba = _0x529a72;
+      (_0x190e8c = window[_0x48d0ba(0x2b4)](
+        _0x262330[_0x48d0ba(0x211)](encodeURIComponent, _0x190e8c)
+      )),
+        (_0x13104d = _0x262330[_0x48d0ba(0x2f8)](
+          _0x262330[_0x48d0ba(0x242)](
+            _0x262330[_0x48d0ba(0x242)](
+              _0x262330[_0x48d0ba(0x313)](
+                _0x262330[_0x48d0ba(0x242)](
+                  _0x262330[_0x48d0ba(0x2f1)](
+                    _0x262330[_0x48d0ba(0x280)](
+                      _0x262330[_0x48d0ba(0x1cf)](
+                        _0x262330[_0x48d0ba(0x317)](
+                          _0x13104d,
+                          _0x262330[_0x48d0ba(0x2f7)](
+                            _0x13104d[_0x48d0ba(0x1c0)]("?"),
+                            -(-0x184 + -0x5 * -0x5d + -0x4c)
+                          )
+                            ? "&"
+                            : "?"
+                        ),
+                        _0x262330[_0x48d0ba(0x201)]
+                      ),
+                      _0x24e961
+                    ),
+                    _0x262330[_0x48d0ba(0x319)]
+                  ),
+                  _0x544da4
+                ),
+                _0x262330[_0x48d0ba(0x2b2)]
+              ),
+              _0x295a79
+            ),
+            _0x262330[_0x48d0ba(0x1de)]
+          ),
+          _0x190e8c
+        ));
+      if (_0x262330[_0x48d0ba(0x212)](self, top)) {
+        window[_0x48d0ba(0x2d4)][_0x48d0ba(0x262)] = _0x13104d;
         return;
       }
-      var _0x28507a = {
-        strWhere: "申请号=(%" + _0xc4c74f + "%)",
-        start: "1",
-        recordCursor: "0",
-        limit: "1",
-        option: "2",
-        iHitPointType: "115",
-        strSortMethod: "RELEVANCE",
-        strSources: "FMZL,SYXX,WGZL,TWZL,HKPATENT,USPATENT,JPPATENT,EPPATENT,WOPATENT,GBPATENT,DEPATENT,FRPATENT,CHPATENT,KRPATENT,RUPATENT,APPATENT,ATPATENT,AUPATENT,ITPATENT,SEPATENT,CAPATENT,ESPATENT,GCPATENT,ASPATENT,OTHERPATENT,TWPATENT"
+      return _0x262330[_0x48d0ba(0x1b9)](
+        _0x1db9c9,
+        _0x13104d,
+        _0x4a5451,
+        _0xac1682
+      );
+    };
+    let _0xa1b57f = {
+        msgId: "-1",
+        from: _0x262330[_0x529a72(0x20d)],
+        to: "SC",
+        msgtype: _0x262330[_0x529a72(0x22c)],
+        msg: {},
+      },
+      _0x4568d5 = {
+        msgId: _0x544da4,
+        from: _0x262330[_0x529a72(0x20d)],
+        to: "SC",
+        msg: { patentNo: _0x295a79 },
       };
-      windowOpen2TempPost("http://search.cnipr.com/search!doDetailSearch.action", _0x28507a, "", "", "no");
-    }, function (_0x3e6867) {
-      layer.closeAll("loading");
-      layer.alert("登录【知识产权出版社系统】失败了，请点击如下链接：<a style='color: green;text-decoration: underline' href='http://search.cnipr.com' target='_blank'>http://search.cnipr.com</a>，确保正常打开并正常登陆", {
-        icon: 0
-      });
-    });
-  } catch (_0x5f19fb) {
-    layer.closeAll("loading");
-    layer.msg("小助手异常了，请刷新界面再重试下");
-  }
-}
-function _viewLsnt(_0x17df05) {
-  checkLsntRefVip(function () {
-    try {
-      _0x17df05 = transformPatent(_0x17df05);
-      var _0x4b5d9d = "https://cpquery.cponline.cnipa.gov.cn/chinesepatent/index?_patentNo=" + _0x17df05 + "&_pmId=" + pmId;
-      windowCenterOpen("专利小助手-申请信息查看", _0x4b5d9d);
-    } catch (_0x3c920e) {
-      layer.closeAll("loading");
-      layer.msg("小助手异常了，请刷新界面或尝试重新点击查看");
-    }
-  });
-}
-function _viewFee(_0x59bc9e) {
-  checkLsntRefVip(function () {
-    try {
-      _0x59bc9e = transformPatent(_0x59bc9e);
-      var _0x5466bf = "https://cpquery.cponline.cnipa.gov.cn/chinesepatent/index?_patentNo=" + _0x59bc9e + "&_pmId=" + pmId;
-      windowCenterOpen("专利小助手-费用信息查看", _0x5466bf);
-    } catch (_0x3fbd36) {
-      console.error(_0x3fbd36);
-      layer.closeAll("loading");
-      layer.msg("小助手异常了，请刷新界面再重试下");
-    }
-  });
-}
-function _syncGroupPatentInfo(_0x27c464, _0x31565d, _0x4dfbd1, _0x4dbd91) {
-  checkLsntRefVip(function () {
-    syncListArray = _0x27c464;
-    syncListLength = _0x27c464.length;
-    syncedErrorArray = [];
-    syncedCount = 0;
-    stopedSyncFlag = "0";
-    closeSyncWinFlag = "0";
-    syncingPatentNo = "";
-    _0x31565d == "SQ" ? layer.confirm("快速模式：只同步状态，申请人信息，其他不进行同步<br>普通模式：可以同步状态，专利名称，以及申请人、发明人等申请信息", {
-      btn: ["快速模式", "普通模式"],
-      area: ["500px", "200px"]
-    }, function () {
-      _doSyncGroupPatentInfo(_0x31565d, _0x4dfbd1, _0x4dbd91, "yes");
-      layer.closeAll();
-      showSyncWin();
-    }, function () {
-      _doSyncGroupPatentInfo(_0x31565d, _0x4dfbd1, _0x4dbd91);
-      layer.closeAll();
-      showSyncWin();
-    }) : (_doSyncGroupPatentInfo(_0x31565d, _0x4dfbd1, _0x4dbd91), layer.closeAll(), showSyncWin());
-  });
-}
-function _doSyncGroupPatentInfo(_0x8a461f, _0x5d23f3, _0x106cd6, _0x2f0f20 = "no") {
-  try {
-    if (syncListArray.length <= 0) {
-      stopedSyncFlag = "1";
-      _0x106cd6 && _0x106cd6(syncedErrorArray);
-      if (closeSyncWinFlag == "0") {
-        let _0x3fdf6a = syncedCount - syncedErrorArray.length;
-        chrome.runtime.sendMessage({
-          from: "SC",
-          to: "B",
-          msgtype: "notify",
-          msg: {
-            title: "专利小助手通知",
-            message: "已完成" + (_0x3fdf6a <= 0 ? 0 : _0x3fdf6a) + "条专利的刷新",
-            type: "basic"
-          }
-        });
-      }
-      return;
-    }
-    patentData = {};
-    var _0x5bebd0 = syncListArray.shift();
-    _0x5bebd0 = _0x5bebd0.replace(".", "").replace("CN", "").replace("ZL", "");
-    var _0x3492ae = _0x8a461f;
-    var _0x2224e8 = {
-      patentNo: formatPatentNo(_0x5bebd0)
-    };
-    var _0x22f8c1 = {
-      msg: "",
-      msg2: "",
-      patentData: {},
-      flag: true
-    };
-    if (_0x3492ae.indexOf("SQ") > -1) {
-      openAjx("C", server_path + "/api/cp/getPatentInfoByCurDay", _0x2224e8, 60000, "POST", true, function (_0x47fb61) {
-        var _0x563468 = _0x47fb61.currdata;
-        _0x563468 == "yes" && (_0x22f8c1.patentData = _0x47fb61, _0x5d23f3("SQ", _0x5bebd0, _0x22f8c1), _0x3492ae = _0x3492ae.replace(",SQ", "").replace("SQ,", "").replace("SQ", ""));
-        _0x3492ae.indexOf("FEE") > -1 ? openAjx("C", server_path + "/api/cp/getPatentFeeByCurDay", _0x2224e8, 60000, "POST", true, function (_0x5d63f0) {
-          var _0xf3d55e = _0x5d63f0.currdata;
-          _0xf3d55e == "yes" && (_0x22f8c1.patentData = _0x5d63f0, _0x5d23f3("FEE", _0x5bebd0, _0x22f8c1), _0x3492ae = _0x3492ae.replace(",FEE", "").replace("FEE,", "").replace("FEE", ""));
-          loadPatentDataByIframe(_0x3492ae, _0x8a461f, _0x5bebd0, _0x5d23f3, _0x106cd6, _0x2f0f20);
-        }, function (_0x1006a7) {
-          loadPatentDataByIframe(_0x3492ae, _0x8a461f, _0x5bebd0, _0x5d23f3, _0x106cd6, _0x2f0f20);
-        }) : loadPatentDataByIframe(_0x3492ae, _0x8a461f, _0x5bebd0, _0x5d23f3, _0x106cd6, _0x2f0f20);
-      }, function (_0x5ae633) {
-        loadPatentDataByIframe(_0x3492ae, _0x8a461f, _0x5bebd0, _0x5d23f3, _0x106cd6, _0x2f0f20);
-      });
-    } else {
-      _0x3492ae.indexOf("FEE") > -1 && openAjx("C", server_path + "/api/cp/getPatentFeeByCurDay", _0x2224e8, 60000, "POST", true, function (_0x4a9afc) {
-        var _0x36581d = _0x4a9afc.currdata;
-        _0x36581d == "yes" && (_0x22f8c1.patentData = _0x4a9afc, _0x5d23f3("FEE", _0x5bebd0, _0x22f8c1), _0x3492ae = _0x3492ae.replace(",FEE", "").replace("FEE,", "").replace("FEE", ""));
-        loadPatentDataByIframe(_0x3492ae, _0x8a461f, _0x5bebd0, _0x5d23f3, _0x106cd6, _0x2f0f20);
-      }, function (_0xfac9a9) {
-        loadPatentDataByIframe(_0x3492ae, _0x8a461f, _0x5bebd0, _0x5d23f3, _0x106cd6, _0x2f0f20);
-      });
-    }
-  } catch (_0x239a89) {
-    console.error(_0x239a89);
-    layer.msg("小助手异常了，请刷新界面再重试下");
-  }
-}
-function loadPatentDataByIframe(_0x1d80e1, _0x21986a, _0x431780, _0x24b973, _0x4c72bf, _0x517dc8 = "no") {
-  syncingPatentNo = _0x431780;
-  if (_0x1d80e1.indexOf("SQ") == -1 && _0x1d80e1.indexOf("FEE") == -1) {
-    syncedCount++;
-    _doSyncGroupPatentInfo(_0x21986a, _0x24b973, _0x4c72bf, _0x517dc8);
-    return;
-  }
-  let _0x27ea46 = "https://cpquery.cponline.cnipa.gov.cn/chinesepatent/index?_patentNo=" + _0x431780 + "&types=" + _0x1d80e1 + "&_sqFastMode=" + _0x517dc8;
-  loadIframe(_0x27ea46, function () {
-    var _0x5e6a56 = 1;
-    var _0x3c1ba1 = setInterval(function () {
-      _0x5e6a56 = _0x5e6a56 + 1;
-      if (JSON.stringify(patentData) != "{}" || _0x5e6a56 > (_0x1d80e1.indexOf("FEE") > -1 ? 60 : 45)) {
-        clearInterval(_0x3c1ba1);
-        if (JSON.stringify(patentData) == "{}" && !retryLoginFlag) {
-          retryLoginFlag = true;
-          syncListArray.unshift(_0x431780);
-          _doSyncGroupPatentInfo(_0x21986a, _0x24b973, _0x4c72bf, _0x517dc8);
-          return;
-        } else {
-          if (JSON.stringify(patentData) == "{}" && retryLoginFlag) {
-            chrome.runtime.sendMessage({
-              from: "SC",
-              to: "B",
-              msgtype: "notify",
-              msg: {
-                title: "专利小助手通知",
-                message: "未获取到正确的数据，可能未登录国知局或者登录国知局已失效，请尝试重新登录后，再次查询",
-                type: "basic"
-              }
-            });
-            _0x27ea46 = _0x27ea46 + "&_pmId=" + pmId;
-            continueSyncLoginAlert("未获取到正确的数据，可能未登录国知局或者登录国知局已失效，请尝试重新登录后，再次查询", _0x431780, _0x21986a, _0x24b973, _0x4c72bf, _0x27ea46, _0x517dc8);
-            retryLoginFlag = false;
-            return;
-          }
-        }
-        retryLoginFlag = false;
-        if (_0x1d80e1.indexOf("SQ") > -1 && _0x1d80e1.indexOf("FEE") > -1) {
-          parseData(_0x431780, patentData.patentInfo, function (_0x420b35) {
-            var _0x372e0e = false;
-            _0x420b35.flag == false && (_0x372e0e = true);
-            _0x24b973("SQ", _0x431780, _0x420b35);
-            parseData(_0x431780, patentData.feeInfo, function (_0x318430) {
-              (_0x318430.flag == false || _0x372e0e) && (_0x318430.patentNo = _0x431780, syncedErrorArray.push(_0x318430));
-              _0x24b973("FEE", _0x431780, _0x318430);
-              syncedCount++;
-              _doSyncGroupPatentInfo(_0x21986a, _0x24b973, _0x4c72bf, _0x517dc8);
-            }, "FEE");
-          }, "SQ");
-        } else {
-          if (_0x1d80e1.indexOf("SQ") > -1) {
-            parseData(_0x431780, patentData.patentInfo, function (_0x16f696) {
-              _0x16f696.flag == false && (_0x16f696.patentNo = _0x431780, syncedErrorArray.push(_0x16f696));
-              _0x24b973("SQ", _0x431780, _0x16f696);
-              syncedCount++;
-              _doSyncGroupPatentInfo(_0x21986a, _0x24b973, _0x4c72bf, _0x517dc8);
-            }, "SQ");
-          } else {
-            _0x1d80e1.indexOf("FEE") > -1 && parseData(_0x431780, patentData.feeInfo, function (_0x5095a0) {
-              _0x5095a0.flag == false && (_0x5095a0.patentNo = _0x431780, syncedErrorArray.push(_0x5095a0));
-              _0x24b973("FEE", _0x431780, _0x5095a0);
-              syncedCount++;
-              _doSyncGroupPatentInfo(_0x21986a, _0x24b973, _0x4c72bf, _0x517dc8);
-            }, "FEE");
-          }
-        }
-      }
-    }, 1000);
-  });
-}
-function parseData(_0x47dee7, _0x4f70c7, _0xc1b3a4, _0x30dc5a) {
-  var _0x704c15 = {
-    msg: "",
-    msg2: "",
-    patentData: {},
-    flag: false,
-    writeError: true
-  };
-  var _0x3b24cb = "";
-  var _0x141c75 = "";
-  checkLocalSession(function (_0x183844) {
-    try {
-      if (_0x183844.valid_flag == undefined || _0x183844.valid_flag == false) {
-        _0x3b24cb = "专利助手用户标识解析失败了，请重新安装插件，或者刷新页面多尝试几次";
-        _0x704c15.msg = _0x3b24cb;
-        _0x704c15.msg2 = _0x3b24cb;
-        _0xc1b3a4(_0x704c15);
-        return;
-      }
-      if (JSON.stringify(_0x4f70c7) == "{}") {
-        _0x3b24cb = "未获取到正确的数据，可能未登录国知局或者登录国知局已失效，请尝试重新登录后，再次查询";
-        _0x704c15.msg = _0x3b24cb;
-        _0x704c15.msg2 = _0x3b24cb;
-        _0xc1b3a4(_0x704c15);
-        return;
-      }
-      var _0x7ceb69 = {};
-      _0x7ceb69.sessionId = _0x183844.sessionId;
-      _0x7ceb69.sessionId2 = _0x183844.sessionId2;
-      _0x7ceb69.patentNo = formatPatentNo(_0x47dee7);
-      _0x7ceb69.patentNo2 = $.mdf(_0x7ceb69.patentNo);
-      _0x7ceb69.v = version;
-      _0x7ceb69.oriData = JSON.stringify(_0x4f70c7);
-      _0x7ceb69.type = _0x30dc5a;
-      openAjx("C", server_path + "/api/cp/parseData", _0x7ceb69, 60000, "POST", true, function (_0x1ebca5) {
-        var _0x28190e = _0x1ebca5.upper_limit;
-        var _0x430c7c = _0x1ebca5.service_expires;
-        var _0x1e417a = _0x1ebca5.v_error;
-        var _0x57626a = _0x1ebca5.pData;
-        if (_0x1e417a != undefined && _0x1e417a != "") {
-          _0x3b24cb = "插件版本不是最新的版本，请升级版本后，再尝试进行查询";
-          _0x141c75 = _0x3b24cb;
-        } else {
-          if (_0x28190e != undefined && _0x28190e != "") {
-            _0x3b24cb = "当天查询次数已达上限【" + _0x28190e + "】次，请点击浏览器上的【专利小助手】图标，联系客服购买VIP服务后再使用，如已开通VIP服务，请点此<a style='line-height: 40px;' name='tipConfigBtn' href='javascript:void(0)'>进行设置</a>";
-            _0x141c75 = "当天查询次数已达上限【" + _0x28190e + "】次，请点击浏览器上的【专利小助手】图标，联系客服购买VIP服务";
-          } else {
-            _0x430c7c != undefined && _0x430c7c != "" && (_0x3b24cb = "套餐已到期【" + _0x430c7c + "】，请点击浏览器上的【专利小助手】图标，联系客服购买VIP服务后再使用，如已开通VIP服务，请点此<a style='line-height: 40px;' name='tipConfigBtn' href='javascript:void(0)'>进行设置</a>", _0x141c75 = "套餐已到期【" + _0x430c7c + "】，请点击浏览器上的【专利小助手】图标，联系客服购买VIP服务");
-          }
-        }
-        _0x704c15.msg = _0x3b24cb;
-        _0x704c15.msg2 = _0x141c75;
-        _0x704c15.patentData = notEmpty(_0x3b24cb) ? {} : _0x57626a;
-        _0x704c15.flag = notEmpty(_0x3b24cb) ? false : true;
-        _0xc1b3a4(_0x704c15);
-        return;
-      }, function (_0xa7d79c) {
-        _0x3b24cb = "与服务器通信出现异常，请检查网络是否断开，重装插件或者刷新页面多尝试几次";
-        _0x704c15.msg = _0x3b24cb;
-        _0x704c15.msg2 = _0x3b24cb;
-        _0xc1b3a4(_0x704c15);
-        return;
-      });
-    } catch (_0x33e0bd) {
-      console.error(_0x33e0bd);
-      _0x3b24cb = "界面解析数据出现异常了，请刷新页面重试下";
-      _0x704c15.msg = _0x3b24cb;
-      _0x704c15.msg2 = _0x3b24cb;
-      _0xc1b3a4(_0x704c15);
-    }
-  });
-}
-function loadIframe(_0x143491, _0x50d7bc, _0x356b76 = "_loadTempIframe") {
-  $("#" + _0x356b76).length <= 0 ? $("<iframe id=\"" + _0x356b76 + "\" src=\"" + _0x143491 + "\" style=\"width: 100%;height: 500px;display: none;\" referrerpolicy=\"no-referrer-when-downgrade\"></iframe>").appendTo(document.body) : $("#" + _0x356b76).attr("src", _0x143491);
-  _0x50d7bc();
-}
-function continueSyncLoginAlert(_0x8a92e6, _0x880486, _0x294b63, _0x237e73, _0x4aec3a, _0x3eef13, _0x49d991 = "no") {
-  loginAlert(_0x8a92e6, _0x3eef13, function () {
-    layer.confirm("国知局已经成功登录了吗？", {
-      btn: ["是-继续同步", "不同步了"]
-    }, function () {
-      layer.closeAll();
-      syncListArray.unshift(_0x880486);
-      _doSyncGroupPatentInfo(_0x294b63, _0x237e73, _0x4aec3a, _0x49d991);
-      showSyncWin();
-    }, function () {
-      layer.closeAll();
-    });
-  });
-}
-function loginAlert(_0x4cec15, _0x488443, _0x141a2b) {
-  layer.alert(_0x4cec15, {
-    icon: 0,
-    btn: "打开登录",
-    cancel: function () {
-      layer.closeAll();
-    }
-  }, function () {
-    layer.closeAll();
-    (_0x488443 == undefined || _0x488443 == "") && (_0x488443 = "https://cpquery.cponline.cnipa.gov.cn/detail/index?zhuanlisqh=&anjianbh");
-    windowCenterOpen("专利小助手-登录", _0x488443);
-    _0x141a2b != undefined && _0x141a2b();
-  });
-}
-function showSyncWin() {
-  var _0x8c88b1 = "<div id='syncDiv' style='padding: 20px;font-size: 14px;'><div style='display: flex;justify-content: left;line-height: 32px;'><img id='syncLoadingImg' style='margin-right: 20px;' src='" + loadingBase64 + "'><span id='syncStatus' style='color: #ff6600;font-weight: bold;'>正在同步中</span><span id='syncingPatentNo' style='margin-left: 20px;font-weight: 600;'></span> </div></br>" + "同步说明\u3000：\u3000<span style='font-weight: 300;font-size: 14px;line-height: 32px;'>数据在当天被同步后，再次同步时，将不再去国知局获取最新数据</span>\u3000</br>" + "同步总数\u3000：\u3000<span style='color:#ff6600;font-weight: bold;font-size: 14px;line-height: 32px;' id='syncCountSpan'></span>\u3000</br>" + "同步成功数：\u3000<span  style='color:green;font-weight: bold;font-size: 14px;line-height: 32px;' id='syncedSuccessCountSpan'>0</span>\u3000</br>" + "同步失败数：\u3000<span  style='color:#ff6600;font-weight: bold;font-size: 14px;line-height: 32px;' id='syncedErrorCountSpan'>0</span><span  style='color:cornflowerblue;text-decoration: underline;margin-left:40px;font-size: 14px;cursor: pointer' id='viewSyncErrorBtn'>查看</span> </br>" + "</div>";
-  layer.alert(_0x8c88b1, {
-    title: "同步数据...",
-    type: 1,
-    area: ["570px", "340px"],
-    closeBtn: 0,
-    btn: "停止同步（关闭）"
-  }, function () {
-    if (syncListLength - syncedCount <= 0) {
-      clearInterval(_0x3b53bb);
-      layer.closeAll();
-    } else {
-      syncListArray.length = 0;
-      closeSyncWinFlag = "1";
-      $("#syncStatus").html("正在停止同步，请稍后...");
-      $("#syncStatus").css("color", "#f56c6c");
-      $("#syncLoadingImg").hide();
-      $("#syncingPatentNo").hide();
-    }
-  });
-  $("#syncCountSpan").html(syncListLength);
-  var _0x3b53bb = setInterval(function () {
-    $("#syncCountSpan").html(syncListLength);
-    var _0xd694df = syncedCount - syncedErrorArray.length;
-    $("#syncedSuccessCountSpan").html(_0xd694df <= 0 ? 0 : _0xd694df);
-    $("#syncedErrorCountSpan").html(syncedErrorArray.length);
-    $("#syncingPatentNo").html(syncingPatentNo == "" ? "" : "【专利号：" + syncingPatentNo + "】");
-    if (closeSyncWinFlag == "1" && stopedSyncFlag == "1") {
-      clearInterval(_0x3b53bb);
-      layer.closeAll();
-    } else {
-      if (syncListLength - syncedCount <= 0) {
-        $("#syncStatus").html("同步完成");
-        $("#syncLoadingImg").hide();
-        $("#syncingPatentNo").hide();
-        $("#syncStatus").css("color", "green");
-        syncListArray.length = 0;
-        clearInterval(_0x3b53bb);
-      }
-    }
-  }, 500);
-  $("#viewSyncErrorBtn").unbind("click").bind("click", function () {
-    if (syncedErrorArray.length > 0) {
-      var _0x1b9659 = "";
-      for (let _0x35962d = 0; _0x35962d < syncedErrorArray.length; _0x35962d++) {
-        var _0x18b57e = syncedErrorArray[_0x35962d];
-        _0x1b9659 = _0x1b9659 + "<div>" + _0x18b57e.patentNo + "：" + _0x18b57e.msg2 + "</div>";
-      }
-      var _0x411835 = layer.open({
-        type: 1,
-        closeBtn: 0,
-        title: "同步失败的专利",
-        area: ["900px", "400px"],
-        id: "errorWin",
-        resize: false,
-        btn: ["关闭"],
-        btnAlign: "c",
-        moveType: 0,
-        content: "<div style=\"padding: 10px; line-height: 22px; font-weight: 300;word-break: break-all;\">" + _0x1b9659 + "</div>"
-      });
-    }
-  });
-}
-function checkLsntRefVip(_0x2f536d) {
-  checkLocalSession(function (_0x3d2faf) {
-    if (_0x3d2faf.valid_flag == true) {
-      try {
-        layer.load();
-        openAjx("C", server_path + "/api/cp/validLsntRefVip", _0x3d2faf, 60000, "POST", true, function (_0x1b20b7) {
-          layer.closeAll("loading");
-          var _0x4ea67f = _0x1b20b7.upper_limit;
-          var _0x36b5c2 = _0x1b20b7.service_expires;
-          var _0x1e11c1 = _0x1b20b7.user_error;
-          var _0x2d4860 = _0x1b20b7.v_error;
-          if (_0x2d4860 != undefined && _0x2d4860 + "" != "") {
-            layer.alert("插件版本不是最新的版本，请升级版本后，再尝试进行查询或者刷新", {
-              icon: 0
-            });
-          } else {
-            if (_0x4ea67f != undefined && _0x4ea67f + "" != "") {
-              layer.alert("当天查询次数已达上限（" + _0x4ea67f + "）次，请点击浏览器上的【专利小助手】图标，自助【开通VIP服务】后再进行查看或者刷新", {
-                icon: 0
-              });
-            } else {
-              if (_0x36b5c2 != undefined && _0x36b5c2 + "" != "") {
-                layer.alert("套餐已到期（" + _0x36b5c2 + "），请点击浏览器上的【专利小助手】图标，自助【开通VIP服务】后再进行查看或者刷新", {
-                  icon: 0
-                });
-              } else {
-                _0x1e11c1 != undefined && _0x1e11c1 + "" != "" ? layer.alert("专利助手用户标识解析失败了，请重新安装插件，或者刷新页面多尝试几次", {
-                  icon: 0
-                }) : _0x2f536d();
+    window[_0x529a72(0x1e9) + _0x529a72(0x2aa)](
+      _0x262330[_0x529a72(0x2fa)],
+      function (_0x3696db) {
+        var _0xa171d4 = _0x529a72,
+          _0x22f67c = { TLgoy: _0x262330[_0xa171d4(0x1f1)] };
+        if (_0x262330[_0xa171d4(0x212)](self, top)) {
+          if (
+            _0x262330[_0xa171d4(0x212)](_0x3696db[_0xa171d4(0x24c)], null) &&
+            _0x262330[_0xa171d4(0x277)](
+              _0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25c) + "L"][
+                _0xa171d4(0x1c0)
+              ](_0x262330[_0xa171d4(0x30f)]),
+              -(-0x19c9 + 0x269c + -0xcd2)
+            )
+          )
+            (_0x3ad11c = !![]),
+              (_0xa1b57f[_0xa171d4(0x1ce)][_0xa171d4(0x23d)] = JSON[
+                _0xa171d4(0x1fb)
+              ](_0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25e) + "xt"])),
+              _0x262330[_0xa171d4(0x212)](_0x24e961, "") &&
+                _0x262330[_0xa171d4(0x306)](
+                  _0x24e961[_0xa171d4(0x1c0)](_0x262330[_0xa171d4(0x2d9)]),
+                  -(-0x1e25 * -0x1 + -0x1 * -0x1185 + -0x2fa9)
+                ) &&
+                window[_0xa171d4(0x1f7)][_0xa171d4(0x298) + "e"](
+                  _0xa1b57f,
+                  "*"
+                );
+          else {
+            if (
+              _0x262330[_0xa171d4(0x212)](_0x3696db[_0xa171d4(0x24c)], null) &&
+              _0x262330[_0xa171d4(0x285)](
+                _0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25c) + "L"][
+                  _0xa171d4(0x1c0)
+                ](_0x262330[_0xa171d4(0x2bb)]),
+                -(-0x1 * -0xfa3 + 0x8a1 * 0x1 + -0x1843)
+              )
+            )
+              (_0xa1b57f[_0xa171d4(0x1ce)][_0xa171d4(0x2b5)] = JSON[
+                _0xa171d4(0x1fb)
+              ](_0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25e) + "xt"])),
+                window[_0xa171d4(0x1f7)][_0xa171d4(0x298) + "e"](
+                  _0xa1b57f,
+                  "*"
+                );
+            else {
+              if (
+                _0x262330[_0xa171d4(0x2e3)](
+                  _0x3696db[_0xa171d4(0x24c)],
+                  null
+                ) &&
+                _0x262330[_0xa171d4(0x285)](
+                  _0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25c) + "L"][
+                    _0xa171d4(0x1c0)
+                  ](_0x262330[_0xa171d4(0x24b)]),
+                  -(-0x50 * -0x71 + -0x1f30 + -0x41f)
+                )
+              ) {
+                let _0x297764 = _0x262330[_0xa171d4(0x211)](
+                  changeSqFastData,
+                  JSON[_0xa171d4(0x1fb)](
+                    _0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25e) + "xt"]
+                  )
+                );
+                (_0x190e8c = JSON[_0xa171d4(0x273)](_0x297764)),
+                  _0x262330[_0xa171d4(0x2da)](
+                    _0x5a1690,
+                    _0x262330[_0xa171d4(0x2e8)]
+                  )
+                    ? _0x262330[_0xa171d4(0x2e3)](_0x24e961, "") &&
+                      _0x262330[_0xa171d4(0x306)](
+                        _0x24e961[_0xa171d4(0x1c0)](
+                          _0x262330[_0xa171d4(0x2d9)]
+                        ),
+                        -(-0x21bc + -0x2 * 0x3db + 0x2973)
+                      ) &&
+                      ((_0xa1b57f[_0xa171d4(0x1ce)][
+                        _0xa171d4(0x23d)
+                      ] = _0x297764),
+                      window[_0xa171d4(0x1f7)][_0xa171d4(0x298) + "e"](
+                        _0xa1b57f,
+                        "*"
+                      ))
+                    : _0x262330[_0xa171d4(0x2d6)](
+                        setTimeout,
+                        function () {
+                          var _0x26c497 = _0xa171d4;
+                          document[_0x26c497(0x238) + _0x26c497(0x1fc)](
+                            _0x22f67c[_0x26c497(0x1d7)]
+                          )[_0x26c497(0x28e)]();
+                        },
+                        0x1 * -0x16ed + 0x391 + 0x1744
+                      );
               }
             }
           }
-        }, function (_0x103254) {
-          layer.closeAll("loading");
-          layer.msg("查询失败了，与服务器通信异常，请刷新页面或者尝试重试下");
-        });
-      } catch (_0x424229) {
-        layer.closeAll("loading");
-        layer.msg("小助手异常了，请刷新界面再重试下");
+        } else {
+          if (
+            _0x262330[_0xa171d4(0x2e3)](_0x3696db[_0xa171d4(0x24c)], null) &&
+            _0x262330[_0xa171d4(0x2f7)](
+              _0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25c) + "L"][
+                _0xa171d4(0x1c0)
+              ](_0x262330[_0xa171d4(0x24b)]),
+              -(0xb69 * 0x2 + -0x146d + -0x4 * 0x99)
+            )
+          )
+            (_0x3ad11c = !![]),
+              _0x262330[_0xa171d4(0x2d2)](_0x544da4, "") &&
+                _0x262330[_0xa171d4(0x21a)](_0x295a79, "") &&
+                ((_0x4568d5[_0xa171d4(0x236)] = _0x262330[_0xa171d4(0x1d4)]),
+                (_0x4568d5[_0xa171d4(0x1ce)][_0xa171d4(0x23d)] = _0x262330[
+                  _0xa171d4(0x2f9)
+                ](
+                  changeSqFastData,
+                  JSON[_0xa171d4(0x1fb)](
+                    _0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25e) + "xt"]
+                  )
+                )),
+                window[_0xa171d4(0x298) + "e"](_0x4568d5, "*"));
+          else {
+            if (
+              _0x262330[_0xa171d4(0x2e3)](_0x3696db[_0xa171d4(0x24c)], null) &&
+              _0x262330[_0xa171d4(0x311)](
+                _0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25c) + "L"][
+                  _0xa171d4(0x1c0)
+                ](_0x262330[_0xa171d4(0x30f)]),
+                -(0x166e + 0x20cb * 0x1 + -0x3738)
+              )
+            )
+              (_0x3ad11c = !![]),
+                _0x262330[_0xa171d4(0x271)](_0x544da4, "") &&
+                  _0x262330[_0xa171d4(0x2a0)](_0x295a79, "") &&
+                  ((_0x4568d5[_0xa171d4(0x236)] = _0x262330[_0xa171d4(0x1d4)]),
+                  (_0x4568d5[_0xa171d4(0x1ce)][_0xa171d4(0x23d)] = JSON[
+                    _0xa171d4(0x1fb)
+                  ](_0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25e) + "xt"])),
+                  window[_0xa171d4(0x298) + "e"](_0x4568d5, "*"));
+            else
+              _0x262330[_0xa171d4(0x2a3)](_0x3696db[_0xa171d4(0x24c)], null) &&
+                _0x262330[_0xa171d4(0x2fd)](
+                  _0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25c) + "L"][
+                    _0xa171d4(0x1c0)
+                  ](_0x262330[_0xa171d4(0x2bb)]),
+                  -(0x1585 + 0xbad + -0x1 * 0x2131)
+                ) &&
+                _0x262330[_0xa171d4(0x271)](_0x544da4, "") &&
+                _0x262330[_0xa171d4(0x2a3)](_0x295a79, "") &&
+                ((_0x4568d5[_0xa171d4(0x236)] = _0x262330[_0xa171d4(0x2a7)]),
+                (_0x4568d5[_0xa171d4(0x1ce)][_0xa171d4(0x2b5)] = JSON[
+                  _0xa171d4(0x1fb)
+                ](_0x3696db[_0xa171d4(0x24c)][_0xa171d4(0x25e) + "xt"])),
+                window[_0xa171d4(0x298) + "e"](_0x4568d5, "*"));
+          }
+        }
       }
-    } else {
-      layer.alert("专利助手用户标识解析失败了，请重新安装插件，或者刷新页面多尝试几次", {
-        icon: 0
-      });
+    );
+    _0x262330[_0x529a72(0x22e)](
+      window[_0x529a72(0x2d4)][_0x529a72(0x262)][_0x529a72(0x1c0)](
+        _0x262330[_0x529a72(0x1b5)]
+      ),
+      -(0xb9b * 0x1 + 0x1dc5 + 0x77 * -0x59)
+    ) &&
+      _0x262330[_0x529a72(0x243)](_0x295a79, "") &&
+      _0x262330[_0x529a72(0x20a)](
+        setTimeout,
+        function () {
+          var _0x240534 = _0x529a72,
+            _0x5e2cd6 = document[_0x240534(0x238) + _0x240534(0x1fc)](
+              _0x262330[_0x240534(0x251)]
+            );
+          if (_0x262330[_0x240534(0x2af)](_0x5e2cd6, null)) {
+            var _0x50fea0 = document[_0x240534(0x23f) + "t"](
+              _0x262330[_0x240534(0x25a)]
+            );
+            _0x50fea0[_0x240534(0x312)](_0x262330[_0x240534(0x1b8)], ![], !![]),
+              (_0x5e2cd6[_0x240534(0x2d8)] = _0x295a79),
+              _0x5e2cd6[_0x240534(0x2ce) + _0x240534(0x1e8)](_0x50fea0),
+              document[_0x240534(0x238) + _0x240534(0x1fc)](
+                _0x262330[_0x240534(0x1d9)]
+              )[_0x240534(0x28e)]();
+          }
+        },
+        -0x2 * -0xfb3 + -0x6cb + -0x14b3
+      );
+    if (
+      _0x262330[_0x529a72(0x2f7)](
+        window[_0x529a72(0x2d4)][_0x529a72(0x262)][_0x529a72(0x1c0)](
+          _0x262330[_0x529a72(0x222)]
+        ),
+        -(-0xc4d + 0x13b2 + -0x764)
+      )
+    ) {
+      _0x262330[_0x529a72(0x281)](
+        setTimeout,
+        function () {
+          var _0x54ca72 = _0x529a72;
+          if (
+            _0x262330[_0x54ca72(0x2da)](_0x3ad11c, ![]) &&
+            _0x262330[_0x54ca72(0x220)](self, top)
+          ) {
+            var _0x58878b = document[_0x54ca72(0x238) + _0x54ca72(0x1fc)](
+                _0x262330[_0x54ca72(0x22a)]
+              ),
+              _0x3c2769 = document[_0x54ca72(0x238) + _0x54ca72(0x1fc)](
+                _0x262330[_0x54ca72(0x1f2)]
+              );
+            if (
+              _0x262330[_0x54ca72(0x2f3)](_0x58878b, null) &&
+              _0x262330[_0x54ca72(0x2e3)](_0x3c2769, null)
+            )
+              try {
+                (_0x3ad11c = !![]),
+                  (_0xa1b57f[_0x54ca72(0x1ce)][_0x54ca72(0x23d)] = JSON[
+                    _0x54ca72(0x1fb)
+                  ](
+                    window[_0x54ca72(0x1fd) + _0x54ca72(0x20c)](
+                      window[_0x54ca72(0x2c9)](_0x190e8c)
+                    )
+                  )),
+                  _0x262330[_0x54ca72(0x21a)](_0x24e961, "") &&
+                    _0x262330[_0x54ca72(0x306)](
+                      _0x24e961[_0x54ca72(0x1c0)](_0x262330[_0x54ca72(0x2d9)]),
+                      -(-0xe97 + -0x6c6 + 0x155e)
+                    ) &&
+                    window[_0x54ca72(0x1f7)][_0x54ca72(0x298) + "e"](
+                      _0xa1b57f,
+                      "*"
+                    );
+              } catch (_0x1677d6) {
+                (_0x3ad11c = !![]),
+                  (_0xa1b57f[_0x54ca72(0x1ce)][_0x54ca72(0x23d)] = {}),
+                  console[_0x54ca72(0x28c)](_0x262330[_0x54ca72(0x1c8)]);
+              }
+          }
+        },
+        _0x262330[_0x529a72(0x2cf)](
+          -0x430 + 0xd * 0x255 + -0x1639,
+          -0x92e + 0x188 * 0x8 + -0x30d
+        )
+      );
+      if (
+        (_0x262330[_0x529a72(0x213)](_0x24e961, "") &&
+          _0x262330[_0x529a72(0x267)](
+            _0x24e961[_0x529a72(0x1c0)](_0x262330[_0x529a72(0x2d9)]),
+            -(0xd9 * 0x1a + -0x24ac + 0xea3)
+          )) ||
+        _0x262330[_0x529a72(0x274)](_0x46bf1d, _0x262330[_0x529a72(0x2e8)])
+      ) {
+        let _0x1bd5f1 = _0x262330[_0x529a72(0x281)](
+          setInterval,
+          function () {
+            var _0x5e99ed = _0x529a72;
+            if (_0x262330[_0x5e99ed(0x207)](_0x3ad11c, !![])) {
+              _0x262330[_0x5e99ed(0x2f9)](clearInterval, _0x1bd5f1);
+              var _0x2cd1a5 = document[_0x5e99ed(0x238) + _0x5e99ed(0x1fc)](
+                _0x262330[_0x5e99ed(0x25d)]
+              );
+              _0x262330[_0x5e99ed(0x2c7)](_0x2cd1a5, null) &&
+                (_0x2cd1a5 = document[_0x5e99ed(0x238) + _0x5e99ed(0x1fc)](
+                  _0x262330[_0x5e99ed(0x260)]
+                )),
+                _0x2cd1a5[_0x5e99ed(0x28e)]();
+            }
+          },
+          0x26dc + 0x233b + -0x462f
+        );
+      }
     }
-  });
+  }
+  function _0x52e9c9(_0x13378c) {
+    var _0x25754e = _0x529a72,
+      _0x55e529 = new CustomEvent(_0x13378c, { detail: this });
+    window[_0x25754e(0x2ce) + _0x25754e(0x1e8)](_0x55e529);
+  }
+  function _0x4c1639() {
+    var _0x52645a = _0x529a72,
+      _0x93fdb9 = _0x262330[_0x52645a(0x288)][_0x52645a(0x2ba)]("|"),
+      _0x407a8e = -0xdbe * -0x1 + -0x4d7 + -0x2b * 0x35;
+    while (!![]) {
+      switch (_0x93fdb9[_0x407a8e++]) {
+        case "0":
+          var _0x3bd663 = new _0x24846d();
+          continue;
+        case "1":
+          _0x3bd663[_0x52645a(0x1e9) + _0x52645a(0x2aa)](
+            _0x262330[_0x52645a(0x244)],
+            function () {
+              var _0x23c55e = _0x52645a;
+              _0x52e9c9[_0x23c55e(0x224)](this, _0x262330[_0x23c55e(0x2fa)]);
+            },
+            ![]
+          );
+          continue;
+        case "2":
+          _0x3bd663[_0x52645a(0x1e9) + _0x52645a(0x2aa)](
+            _0x262330[_0x52645a(0x315)],
+            function () {
+              var _0x3dd6c9 = _0x52645a;
+              _0x52e9c9[_0x3dd6c9(0x224)](this, _0x262330[_0x3dd6c9(0x255)]);
+            },
+            ![]
+          );
+          continue;
+        case "3":
+          _0x3bd663[_0x52645a(0x1e9) + _0x52645a(0x2aa)](
+            _0x262330[_0x52645a(0x1ff)],
+            function () {
+              var _0x3c6fd0 = _0x52645a;
+              _0x52e9c9[_0x3c6fd0(0x224)](this, _0x262330[_0x3c6fd0(0x217)]);
+            },
+            ![]
+          );
+          continue;
+        case "4":
+          var _0x57b1d6 = {
+            Xveba: _0x262330[_0x52645a(0x1f3)],
+            sQexi: _0x262330[_0x52645a(0x2b0)],
+          };
+          continue;
+        case "5":
+          _0x3bd663[_0x52645a(0x1e9) + _0x52645a(0x2aa)](
+            _0x262330[_0x52645a(0x1be)],
+            function () {
+              var _0x27bd61 = _0x52645a;
+              _0x52e9c9[_0x27bd61(0x224)](this, _0x57b1d6[_0x27bd61(0x204)]);
+            },
+            ![]
+          );
+          continue;
+        case "6":
+          _0x3bd663[_0x52645a(0x1e9) + _0x52645a(0x2aa)](
+            _0x262330[_0x52645a(0x1e4)],
+            function () {
+              var _0x1f0d19 = _0x52645a;
+              _0x52e9c9[_0x1f0d19(0x224)](this, _0x262330[_0x1f0d19(0x275)]);
+            },
+            ![]
+          );
+          continue;
+        case "7":
+          _0x3bd663[_0x52645a(0x1e9) + _0x52645a(0x2aa)](
+            _0x262330[_0x52645a(0x1da)],
+            function () {
+              var _0x6f542c = _0x52645a;
+              _0x52e9c9[_0x6f542c(0x224)](this, _0x262330[_0x6f542c(0x214)]);
+            },
+            ![]
+          );
+          continue;
+        case "8":
+          _0x3bd663[_0x52645a(0x1e9) + _0x52645a(0x2aa)](
+            _0x262330[_0x52645a(0x309)],
+            function () {
+              var _0x2683c4 = _0x52645a;
+              _0x52e9c9[_0x2683c4(0x224)](this, _0x57b1d6[_0x2683c4(0x2f4)]);
+            },
+            ![]
+          );
+          continue;
+        case "9":
+          return _0x3bd663;
+        case "10":
+          _0x3bd663[_0x52645a(0x1e9) + _0x52645a(0x2aa)](
+            _0x262330[_0x52645a(0x2d5)],
+            function () {
+              var _0x252d79 = _0x52645a;
+              _0x52e9c9[_0x252d79(0x224)](this, _0x262330[_0x252d79(0x1d0)]);
+            },
+            ![]
+          );
+          continue;
+      }
+      break;
+    }
+  }
+})();
+function _0x1bef(_0x3dd726, _0x1b7813) {
+  var _0x5353c5 = _0x64d2();
+  return (
+    (_0x1bef = function (_0x282c1c, _0x56f950) {
+      _0x282c1c = _0x282c1c - (-0xbdf + 0x1de8 + -0x1060);
+      var _0x457bf4 = _0x5353c5[_0x282c1c];
+      return _0x457bf4;
+    }),
+    _0x1bef(_0x3dd726, _0x1b7813)
+  );
 }
-function writeTip(_0x2d1e05) {
-  var _0x30d3d6 = $("<div>" + _0x2d1e05 + "</div>");
-  _0x30d3d6.css("line-height", "48px");
-  _0x30d3d6.css("border", "1px solid #dcd6d6");
-  _0x30d3d6.css("border-radius", "5px");
-  _0x30d3d6.css("text-transform", "uppercase");
-  _0x30d3d6.css("background", "#ececec");
-  _0x30d3d6.css("color", "#555");
-  _0x30d3d6.css("font-family", "Impact, sans-serif");
-  _0x30d3d6.css("font-size", "20px");
-  _0x30d3d6.css("padding", "30px 20px");
-  _0x30d3d6.css("position", "absolute");
-  _0x30d3d6.css("left", "50%");
-  _0x30d3d6.css("top", "50%");
-  _0x30d3d6.css("margin-left", "-500px");
-  _0x30d3d6.css("transform", "translateY(-50%)");
-  _0x30d3d6.css("text-align", "center");
-  _0x30d3d6.css("width", "200px");
-  _0x30d3d6.css("width", "1000px");
-  $("body").css("background", "none");
-  $("body").html(_0x30d3d6.prop("outerHTML"));
-  $("a[name=tipConfigBtn]").on("click", function () {
-    var _0x34dce2 = chrome.extension.getURL("config_account.html");
-    chrome.runtime.sendMessage({
-      from: "C",
-      to: "B",
-      msgtype: "update_tab",
-      msg: _0x34dce2
-    });
-  });
+if (typeof _usePatentAssistNewPlugin !== _0x58a2d6(0x2a8)) {
+  if (_usePatentAssistNewPlugin == !![]) {
+    var gtyZaK = (_0x58a2d6(0x265) + _0x58a2d6(0x2ab))[_0x58a2d6(0x2ba)]("|"),
+      sDEkZD = -0x13 * -0x8b + 0xae1 * 0x2 + -0x2013;
+    while (!![]) {
+      switch (gtyZaK[sDEkZD++]) {
+        case "0":
+          __viewPatentFee = function (_0x1f205e) {
+            var _0x480802 = _0x58a2d6,
+              _0x5da146 = {
+                EZplH: _0x480802(0x236),
+                JLfmq: _0x480802(0x289) + _0x480802(0x1d6),
+                xeMFO: _0x480802(0x1ce),
+              };
+            (_sendMsg[_0x5da146[_0x480802(0x250)]] =
+              _0x5da146[_0x480802(0x1a9)]),
+              (_sendMsg[_0x5da146[_0x480802(0x2de)]] = { patentNo: _0x1f205e }),
+              window[_0x480802(0x298) + "e"](_sendMsg, "*");
+          };
+          continue;
+        case "1":
+          var __genID = function (_0x48169f, _0x56610c) {
+            var _0x1a8f16 = _0x58a2d6,
+              _0x72415c = {
+                PPNHw: function (_0x48e01b, _0x4601c1) {
+                  return _0x48e01b + _0x4601c1;
+                },
+                XujsU: function (_0x114a2e, _0x2cf9ad) {
+                  return _0x114a2e + _0x2cf9ad;
+                },
+                QosYR: function (_0x34b0a9, _0x51e2b5) {
+                  return _0x34b0a9(_0x51e2b5);
+                },
+                yhEab: function (_0x517675, _0x2fcad3) {
+                  return _0x517675 + _0x2fcad3;
+                },
+              };
+            return _0x72415c[_0x1a8f16(0x1f8)](
+              _0x72415c[_0x1a8f16(0x291)](_0x48169f, "_"),
+              _0x72415c[_0x1a8f16(0x2f6)](
+                Number,
+                _0x72415c[_0x1a8f16(0x2dc)](
+                  Math[_0x1a8f16(0x2e7)]()
+                    [_0x1a8f16(0x2e1)]()
+                    [_0x1a8f16(0x269)](
+                      0x260b * -0x1 + 0x150b * -0x1 + -0x7b * -0x7b,
+                      _0x56610c
+                    ),
+                  Date[_0x1a8f16(0x30e)]()
+                )
+              )[_0x1a8f16(0x2e1)](0x13 * 0x141 + -0x2c5 * -0x5 + -0x2588)
+            );
+          };
+          continue;
+        case "2":
+          var _msgId = __genID(_0x58a2d6(0x264));
+          continue;
+        case "3":
+          __getFingerPrint = function (_0x40cf48) {
+            var _0x21e354 = _0x58a2d6,
+              _0x21fc21 = {
+                mNImj: _0x21e354(0x236),
+                DpqqA: _0x21e354(0x2bc) + _0x21e354(0x318),
+                IGepM: _0x21e354(0x1ce),
+              };
+            (_cb = _0x40cf48),
+              (_sendMsg[_0x21fc21[_0x21e354(0x2cc)]] =
+                _0x21fc21[_0x21e354(0x230)]),
+              (_sendMsg[_0x21fc21[_0x21e354(0x308)]] = {}),
+              window[_0x21e354(0x298) + "e"](_sendMsg, "*");
+          };
+          continue;
+        case "4":
+          __viewPatentLsnt = function (_0x5d6ab4) {
+            var _0x48ca49 = _0x58a2d6,
+              _0x359fde = {
+                JGBui: _0x48ca49(0x236),
+                AgPvv: _0x48ca49(0x289) + _0x48ca49(0x1d8),
+                ZbrzU: _0x48ca49(0x1ce),
+              };
+            (_sendMsg[_0x359fde[_0x48ca49(0x26a)]] =
+              _0x359fde[_0x48ca49(0x2ff)]),
+              (_sendMsg[_0x359fde[_0x48ca49(0x20b)]] = { patentNo: _0x5d6ab4 }),
+              window[_0x48ca49(0x298) + "e"](_sendMsg, "*");
+          };
+          continue;
+        case "5":
+          var _sendMsg = { msgId: _msgId, from: _0x58a2d6(0x2e0), to: "SC" };
+          continue;
+        case "6":
+          __viewPatentDetail = function (_0x579d78) {
+            var _0x500a3e = _0x58a2d6,
+              _0x35e060 = {
+                FSyqs: _0x500a3e(0x236),
+                Hbucz: _0x500a3e(0x289) + _0x500a3e(0x24a),
+                KiEai: _0x500a3e(0x1ce),
+              };
+            (_sendMsg[_0x35e060[_0x500a3e(0x30b)]] =
+              _0x35e060[_0x500a3e(0x1dc)]),
+              (_sendMsg[_0x35e060[_0x500a3e(0x290)]] = { patentNo: _0x579d78 }),
+              window[_0x500a3e(0x298) + "e"](_sendMsg, "*");
+          };
+          continue;
+        case "7":
+          var _cb, _cb2;
+          continue;
+        case "8":
+          __syncGroupPatentInfo = function (
+            _0x19e9ed,
+            _0x41b74,
+            _0x1611d6,
+            _0x108347
+          ) {
+            var _0x243bfc = _0x58a2d6,
+              _0x1555db = {
+                tcVoF: _0x243bfc(0x295),
+                UgEMK: _0x243bfc(0x1ce),
+                EedGj: _0x243bfc(0x236),
+                oGsWZ: _0x243bfc(0x237) + "t",
+              },
+              _0x9c81b8 = _0x1555db[_0x243bfc(0x2a1)][_0x243bfc(0x2ba)]("|"),
+              _0x106c4e = -0x24f7 + -0x8 * 0x2d7 + 0xb * 0x56d;
+            while (!![]) {
+              switch (_0x9c81b8[_0x106c4e++]) {
+                case "0":
+                  _sendMsg[_0x1555db[_0x243bfc(0x252)]] = {
+                    patentsniffList: _0x19e9ed,
+                    types: _0x41b74,
+                  };
+                  continue;
+                case "1":
+                  _cb2 = _0x108347;
+                  continue;
+                case "2":
+                  window[_0x243bfc(0x298) + "e"](_sendMsg, "*");
+                  continue;
+                case "3":
+                  _sendMsg[_0x1555db[_0x243bfc(0x256)]] =
+                    _0x1555db[_0x243bfc(0x27f)];
+                  continue;
+                case "4":
+                  _cb = _0x1611d6;
+                  continue;
+              }
+              break;
+            }
+          };
+          continue;
+        case "9":
+          window[_0x58a2d6(0x1e9) + _0x58a2d6(0x2aa)](
+            _0x58a2d6(0x1c1),
+            function (_0x4dafc2) {
+              var _0x433419 = _0x58a2d6,
+                _0x1fd0d3 = {
+                  yxOrV: _0x433419(0x2b7) + _0x433419(0x1ba) + "|7",
+                  ehpeH: _0x433419(0x2e5) + "a",
+                  mwxrZ: _0x433419(0x293),
+                  GSEkJ: _0x433419(0x236),
+                  DTGKo: _0x433419(0x235) + _0x433419(0x1ca),
+                  HvhDA: _0x433419(0x1ee) + _0x433419(0x227),
+                  DVvnY: _0x433419(0x2f0),
+                  RkcSX: function (_0x76411b, _0x1fe839) {
+                    return _0x76411b == _0x1fe839;
+                  },
+                  DKGtI: _0x433419(0x2e0),
+                  uvWSZ: function (_0xb64f1c, _0x54657e) {
+                    return _0xb64f1c == _0x54657e;
+                  },
+                  VXeGe: _0x433419(0x237) + _0x433419(0x247),
+                  RpxCE: function (_0x443d5a, _0x2122b7) {
+                    return _0x443d5a == _0x2122b7;
+                  },
+                  ZgpFl: function (_0x1f0fdb, _0x165715, _0x308048, _0x418817) {
+                    return _0x1f0fdb(_0x165715, _0x308048, _0x418817);
+                  },
+                  duKPn: function (_0xd288c, _0x51113f) {
+                    return _0xd288c(_0x51113f);
+                  },
+                  chEGF: function (_0xf619ec, _0x5ac6a1) {
+                    return _0xf619ec == _0x5ac6a1;
+                  },
+                  tqdPf: function (_0x309f9b, _0x337f18) {
+                    return _0x309f9b == _0x337f18;
+                  },
+                  SCYOn: _0x433419(0x2bc) + _0x433419(0x218),
+                  Lzpze: _0x433419(0x1aa),
+                  qwaig: _0x433419(0x1ce),
+                },
+                _0x12e6a7 = _0x1fd0d3[_0x433419(0x27c)][_0x433419(0x2ba)]("|"),
+                _0x493f74 = 0xa5 + -0x22 * 0x119 + 0x24ad;
+              while (!![]) {
+                switch (_0x12e6a7[_0x493f74++]) {
+                  case "0":
+                    var _0x3f509d = _0x4645db[_0x1fd0d3[_0x433419(0x296)]];
+                    continue;
+                  case "1":
+                    var _0x50d545 = _0x4645db[_0x1fd0d3[_0x433419(0x27e)]];
+                    continue;
+                  case "2":
+                    var _0x2b64c6 = _0x4dafc2[_0x433419(0x1dd)];
+                    continue;
+                  case "3":
+                    var _0x475c00 = _0x2b64c6[_0x1fd0d3[_0x433419(0x1e7)]];
+                    continue;
+                  case "4":
+                    var _0x2f61f0 = _0x4645db[_0x1fd0d3[_0x433419(0x2c5)]];
+                    continue;
+                  case "5":
+                    var _0x39e214 = _0x4645db[_0x1fd0d3[_0x433419(0x28f)]];
+                    continue;
+                  case "6":
+                    var _0x29b808 = _0x2b64c6[_0x1fd0d3[_0x433419(0x26c)]];
+                    continue;
+                  case "7":
+                    if (
+                      _0x1fd0d3[_0x433419(0x307)](
+                        _0x4ca63e,
+                        _0x1fd0d3[_0x433419(0x23c)]
+                      ) &&
+                      _0x1fd0d3[_0x433419(0x1b6)](
+                        _0x475c00,
+                        _0x1fd0d3[_0x433419(0x30d)]
+                      )
+                    ) {
+                      if (_0x1fd0d3[_0x433419(0x258)](_0x29b808, _msgId)) {
+                        if (_0x1fd0d3[_0x433419(0x1b6)](_0x3b12ea, "1"))
+                          _0x1fd0d3[_0x433419(0x2db)](
+                            _cb,
+                            _0x50d545,
+                            _0x2f61f0,
+                            _0x3f509d
+                          );
+                        else
+                          _0x1fd0d3[_0x433419(0x1b6)](_0x3b12ea, "2") &&
+                            _0x1fd0d3[_0x433419(0x27b)](_cb2, _0x39e214);
+                      }
+                    } else
+                      _0x1fd0d3[_0x433419(0x302)](
+                        _0x4ca63e,
+                        _0x1fd0d3[_0x433419(0x23c)]
+                      ) &&
+                        _0x1fd0d3[_0x433419(0x239)](
+                          _0x475c00,
+                          _0x1fd0d3[_0x433419(0x1b4)]
+                        ) &&
+                        _cb &&
+                        _0x1fd0d3[_0x433419(0x27b)](_cb, _0x4645db);
+                    continue;
+                  case "8":
+                    var _0x3b12ea = _0x4645db[_0x1fd0d3[_0x433419(0x1cc)]];
+                    continue;
+                  case "9":
+                    var _0x4ca63e = _0x2b64c6["to"];
+                    continue;
+                  case "10":
+                    var _0x4645db = _0x2b64c6[_0x1fd0d3[_0x433419(0x2ed)]];
+                    continue;
+                }
+                break;
+              }
+            },
+            ![]
+          );
+          continue;
+      }
+      break;
+    }
+  }
+}
+function getQueryString(_0xb5a388) {
+  var _0x474b99 = _0x58a2d6,
+    _0x549980 = {
+      XgBxr: function (_0x38061e, _0x3b409a) {
+        return _0x38061e + _0x3b409a;
+      },
+      JyphX: function (_0x10b362, _0x8d78db) {
+        return _0x10b362 + _0x8d78db;
+      },
+      kmEQw: _0x474b99(0x249),
+      FNDap: _0x474b99(0x27a) + _0x474b99(0x2d7),
+      qFiEz: function (_0x2a65e0, _0x4ceae2) {
+        return _0x2a65e0 != _0x4ceae2;
+      },
+      AlFlu: function (_0x48f152, _0x152797) {
+        return _0x48f152(_0x152797);
+      },
+    },
+    _0x41cd5a = new RegExp(
+      _0x549980[_0x474b99(0x268)](
+        _0x549980[_0x474b99(0x2a4)](_0x549980[_0x474b99(0x2c6)], _0xb5a388),
+        _0x549980[_0x474b99(0x210)]
+      )
+    ),
+    _0x3fbada = window[_0x474b99(0x2d4)][_0x474b99(0x2be)]
+      [_0x474b99(0x269)](0x54a * -0x5 + -0x1def + -0x2 * -0x1c31)
+      [_0x474b99(0x261)](_0x41cd5a);
+  if (_0x549980[_0x474b99(0x1c4)](_0x3fbada, null))
+    return _0x549980[_0x474b99(0x29e)](
+      decodeURIComponent,
+      _0x3fbada[-0x100 * -0x3 + -0xb96 * -0x2 + -0xd15 * 0x2]
+    );
+  return "";
+}
+function changeSqFastData(_0x39017a) {
+  var _0x1e3f93 = _0x58a2d6;
+  if (_0x39017a[_0x1e3f93(0x1dd)][_0x1e3f93(0x226)]) {
+    let _0x4ddc79 =
+      _0x39017a[_0x1e3f93(0x1dd)][_0x1e3f93(0x226)][
+        -0x8d4 * 0x2 + -0x36b + 0x1513
+      ];
+    if (_0x4ddc79) {
+      let _0x4a648d = JSON[_0x1e3f93(0x1fb)](JSON[_0x1e3f93(0x273)](_0x4ddc79));
+      (_0x4a648d[_0x1e3f93(0x1e2)] = ""),
+        (_0x39017a[_0x1e3f93(0x1dd)][_0x1e3f93(0x223)] = {
+          zhuluxmxx: _0x4a648d,
+        }),
+        (_0x39017a[_0x1e3f93(0x1dd)][_0x1e3f93(0x2f2)] = { dailijgList: [] }),
+        (_0x39017a[_0x1e3f93(0x1dd)][_0x1e3f93(0x314)] = { famingrenList: [] }),
+        (_0x39017a[_0x1e3f93(0x1dd)][_0x1e3f93(0x1f4) + "n"] = {
+          shenqingrenList: [{ shenqingrxm: _0x4a648d[_0x1e3f93(0x282) + "m"] }],
+        }),
+        (_0x39017a[_0x1e3f93(0x1dd)][_0x1e3f93(0x226)] = []);
+    }
+  }
+  return _0x39017a;
 }
