@@ -1,9 +1,6 @@
-//Mon Dec 02 2024 08:43:41 GMT+0000 (Coordinated Universal Time)
+//Mon Dec 02 2024 08:46:16 GMT+0000 (Coordinated Universal Time)
 //Base:https://github.com/echo094/decode-js
 //Modify:https://github.com/smallfawn/decode_action
-var syncListArray = new Array();
-var syncListLength = 0;
-var syncedCount = 0;
 var syncedErrorArray = [];
 var stopedSyncFlag = "0";
 var closeSyncWinFlag = "0";
